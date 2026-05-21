@@ -73,9 +73,7 @@ export async function main(): Promise<void> {
   await new Promise(() => {});
 }
 
-if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((err) => {
-    console.error('Server error:', err);
-    process.exit(1);
-  });
-}
+main().catch((err) => {
+  console.error('Server error:', err);
+  process.exit(1);
+});
