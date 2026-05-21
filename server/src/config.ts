@@ -47,7 +47,7 @@ export function loadConfig(path: string): Config {
   return {
     port,
     mode: validatedMode,
-    project_path: envOrFile('GODOT_MCP_PROJECT_PATH', fileConfig.project_path, DEFAULTS.project_path),
+    project_path: String(envOrFile('GODOT_MCP_PROJECT_PATH', fileConfig.project_path, DEFAULTS.project_path)),
     log_level: validatedLogLevel,
   };
 }
