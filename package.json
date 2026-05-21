@@ -1,0 +1,31 @@
+{
+  "name": "godot-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Godot 4.6.2+",
+  "main": "dist/server.js",
+  "bin": {
+    "godot-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "start": "node dist/server.js"
+  },
+  "keywords": ["godot", "mcp", "model-context-protocol"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "ws": "^8.18.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/ws": "^8.18.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

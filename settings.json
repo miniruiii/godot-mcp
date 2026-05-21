@@ -1,0 +1,6 @@
+{
+  "port": 6505,
+  "mode": "full",
+  "project_path": "./",
+  "log_level": "info"
+}
