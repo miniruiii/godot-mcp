@@ -13,7 +13,7 @@ export interface CreateScriptResult {
 }
 
 function unescapeTemplate(content: string): string {
-  return content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+  return content.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
 }
 
 export function createScript(args: CreateScriptArgs, projectRoot: string): CreateScriptResult {
