@@ -4,8 +4,8 @@ extends EditorPlugin
 const WebSocketServer = preload("res://addons/godot_mcp/websocket_server.gd")
 const RpcHandler = preload("res://addons/godot_mcp/rpc_handler.gd")
 
-var ws_server: WebSocketServer
-var rpc_handler: RpcHandler
+var ws_server
+var rpc_handler
 
 func _enter_tree():
     rpc_handler = RpcHandler.new()
