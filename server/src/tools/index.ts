@@ -24,6 +24,10 @@ import {
   listAnimations, createAnimation, addAnimationTrack, setAnimationKeyframe,
   getAnimationInfo, removeAnimation
 } from './animation.js';
+import {
+  tilemapSetCell, tilemapGetCell, tilemapClear, tilemapGetInfo,
+  tilemapGetUsedCells, tilemapFillRect
+} from './tilemap.js';
 
 export interface ToolDefinition {
   name: string;
@@ -730,6 +734,67 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['node_path', 'animation'],
       },
       handler: (args) => removeAnimation(args as { node_path: string; animation: string }, bridge),
+    },
+    // Tilemap tools (6)
+    {
+      name: 'tilemap_set_cell',
+      description: 'Set a cell in a TileMap layer to a specific tile ID',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layer: { type: 'number' }, x: { type: 'number' }, y: { type: 'number' }, tile_id: { type: 'number' } },
+        required: ['node_path', 'x', 'y', 'tile_id'],
+      },
+      handler: (args) => tilemapSetCell(args as { node_path: string; layer?: number; x: number; y: number; tile_id: number }, bridge),
+    },
+    {
+      name: 'tilemap_get_cell',
+      description: 'Get the tile ID at a specific cell position in a TileMap',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layer: { type: 'number' }, x: { type: 'number' }, y: { type: 'number' } },
+        required: ['node_path', 'x', 'y'],
+      },
+      handler: (args) => tilemapGetCell(args as { node_path: string; layer?: number; x: number; y: number }, bridge),
+    },
+    {
+      name: 'tilemap_clear',
+      description: 'Clear all cells in a TileMap layer',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layer: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => tilemapClear(args as { node_path: string; layer?: number }, bridge),
+    },
+    {
+      name: 'tilemap_get_info',
+      description: 'Get information about a TileMap node including cell size, tile set, and layers',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => tilemapGetInfo(args as { node_path: string }, bridge),
+    },
+    {
+      name: 'tilemap_get_used_cells',
+      description: 'Get all used cell positions in a TileMap layer',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layer: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => tilemapGetUsedCells(args as { node_path: string; layer?: number }, bridge),
+    },
+    {
+      name: 'tilemap_fill_rect',
+      description: 'Fill a rectangular region in a TileMap layer with a specific tile ID',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layer: { type: 'number' }, x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' }, tile_id: { type: 'number' } },
+        required: ['node_path', 'x', 'y', 'width', 'height', 'tile_id'],
+      },
+      handler: (args) => tilemapFillRect(args as { node_path: string; layer?: number; x: number; y: number; width: number; height: number; tile_id: number }, bridge),
     },
   ];
 }
