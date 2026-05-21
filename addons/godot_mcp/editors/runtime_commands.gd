@@ -303,14 +303,6 @@ func navigate_to(params: Dictionary) -> Dictionary:
 	agent.navigate()
 	return { "result": { "navigating": true, "target": target_pos_str } }
 
-func move_to(params: Dictionary) -> Dictionary:
-	var result = navigate_to(params)
-	if "error" in result:
-		return result
-	# Change the key from "navigating" to "moving" in the result
-	if "result" in result and "navigating" in result["result"]:
-		result["result"]["moving"] = result["result"].pop("navigating")
-	return result
 
 func get_game_node_property(params: Dictionary) -> Dictionary:
 	var node_path = params.get("node_path", "")

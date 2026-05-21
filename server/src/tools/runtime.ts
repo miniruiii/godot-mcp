@@ -220,25 +220,6 @@ export async function navigateTo(args: NavigateToArgs, _projectRoot: string, bri
   return await bridge.call('game.navigate_to', { node_path: args.node_path, target: args.target }) as NavigateToResult;
 }
 
-// Tool 13: moveTo
-export interface MoveToArgs {
-  node_path: string;
-  target: string;
-}
-
-export interface MoveToResult {
-  moved?: boolean;
-  offline?: boolean;
-  message?: string;
-}
-
-export async function moveTo(args: MoveToArgs, _projectRoot: string, bridge: GodotBridge): Promise<MoveToResult> {
-  if (!bridge.isConnected) {
-    return { offline: true, message: 'moveTo requires Godot editor to be running with the Godot MCP plugin enabled.' };
-  }
-  return await bridge.call('game.move_to', { node_path: args.node_path, target: args.target }) as MoveToResult;
-}
-
 // Tool 14: getGameNodeProperty
 export interface GetGameNodePropertyArgs {
   node_path: string;

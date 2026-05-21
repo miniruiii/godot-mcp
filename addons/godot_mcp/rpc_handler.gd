@@ -99,8 +99,6 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return runtime_commands.find_nearby_nodes(params)
         "game.navigate_to":
             return runtime_commands.navigate_to(params)
-        "game.move_to":
-            return runtime_commands.move_to(params)
         "game.get_game_node_property":
             return runtime_commands.get_game_node_property(params)
         "game.capture_frames":

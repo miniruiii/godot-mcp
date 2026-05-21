@@ -9,7 +9,7 @@ import { runProject, getOutputLog } from './editor.js';
 import {
   getGameSceneTree, getGameNodeProperties, setGameNodeProperty, executeGameScript,
   findNodesByScript, getAutoload, batchGetProperties, findUiElements, clickButtonByText,
-  waitForNode, findNearbyNodes, navigateTo, moveTo, getGameNodeProperty, captureFrames,
+  waitForNode, findNearbyNodes, navigateTo, getGameNodeProperty, captureFrames,
   monitorProperties, startRecording, stopRecording, replayRecording
 } from './runtime.js';
 import {
@@ -326,16 +326,6 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['node_path', 'target'],
       },
       handler: (args) => navigateTo(args as { node_path: string; target: string }, projectRoot, bridge),
-    },
-    {
-      name: 'move_to',
-      description: 'Move to a target position or node',
-      inputSchema: {
-        type: 'object',
-        properties: { node_path: { type: 'string' }, target: { type: 'string' } },
-        required: ['node_path', 'target'],
-      },
-      handler: (args) => moveTo(args as { node_path: string; target: string }, projectRoot, bridge),
     },
     {
       name: 'get_game_node_property',
