@@ -28,6 +28,22 @@ import {
   tilemapSetCell, tilemapGetCell, tilemapClear, tilemapGetInfo,
   tilemapGetUsedCells, tilemapFillRect
 } from './tilemap.js';
+import {
+  createTheme, setThemeColor, setThemeConstant, setThemeFontSize,
+  setThemeStylebox, getThemeInfo
+} from './theme.js';
+import {
+  readResource, editResource, createResource, getResourcePreview,
+  addAutoload, removeAutoload
+} from './resource.js';
+import {
+  setupPhysicsBody, setupCollision, setPhysicsLayers,
+  getPhysicsLayers, getCollisionInfo, addRaycast
+} from './physics.js';
+import {
+  setupNavigationRegion, setupNavigationAgent, bakeNavigationMesh,
+  setNavigationLayers, getNavigationInfo, getNavigationPath
+} from './navigation.js';
 
 export interface ToolDefinition {
   name: string;
@@ -795,6 +811,250 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['node_path', 'x', 'y', 'width', 'height', 'tile_id'],
       },
       handler: (args) => tilemapFillRect(args as { node_path: string; layer?: number; x: number; y: number; width: number; height: number; tile_id: number }, bridge),
+    },
+    // Theme tools (6)
+    {
+      name: 'create_theme',
+      description: 'Create a new Theme resource file',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => createTheme(args as { node_path: string }, bridge),
+    },
+    {
+      name: 'set_theme_color',
+      description: 'Set a color value in a Theme resource',
+      inputSchema: {
+        type: 'object',
+        properties: { theme_path: { type: 'string' }, color_class: { type: 'string' }, color_name: { type: 'string' }, color: { type: 'string' } },
+        required: ['theme_path', 'color_class', 'color_name', 'color'],
+      },
+      handler: (args) => setThemeColor(args as any, bridge),
+    },
+    {
+      name: 'set_theme_constant',
+      description: 'Set a constant value in a Theme resource',
+      inputSchema: {
+        type: 'object',
+        properties: { theme_path: { type: 'string' }, constant_class: { type: 'string' }, constant_name: { type: 'string' }, value: { type: 'number' } },
+        required: ['theme_path', 'constant_class', 'constant_name', 'value'],
+      },
+      handler: (args) => setThemeConstant(args as any, bridge),
+    },
+    {
+      name: 'set_theme_font_size',
+      description: 'Set a font size value in a Theme resource',
+      inputSchema: {
+        type: 'object',
+        properties: { theme_path: { type: 'string' }, font_class: { type: 'string' }, font_name: { type: 'string' }, size_name: { type: 'string' }, size: { type: 'number' } },
+        required: ['theme_path', 'font_class', 'font_name', 'size_name', 'size'],
+      },
+      handler: (args) => setThemeFontSize(args as any, bridge),
+    },
+    {
+      name: 'set_theme_stylebox',
+      description: 'Set a StyleBox texture in a Theme resource',
+      inputSchema: {
+        type: 'object',
+        properties: { theme_path: { type: 'string' }, style_class: { type: 'string' }, style_name: { type: 'string' }, texture_path: { type: 'string' } },
+        required: ['theme_path', 'style_class', 'style_name', 'texture_path'],
+      },
+      handler: (args) => setThemeStylebox(args as any, bridge),
+    },
+    {
+      name: 'get_theme_info',
+      description: 'Get information about a Theme resource',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getThemeInfo(args as { node_path: string }, bridge),
+    },
+    // Resource tools (6)
+    {
+      name: 'read_resource',
+      description: 'Read a .tres resource file and return its properties',
+      inputSchema: {
+        type: 'object',
+        properties: { path: { type: 'string' } },
+        required: ['path'],
+      },
+      handler: (args) => readResource(args as { path: string }, bridge),
+    },
+    {
+      name: 'edit_resource',
+      description: 'Edit a property value in a .tres resource file',
+      inputSchema: {
+        type: 'object',
+        properties: { resource_path: { type: 'string' }, property: { type: 'string' }, value: { type: 'string' } },
+        required: ['resource_path', 'property', 'value'],
+      },
+      handler: (args) => editResource(args as any, bridge),
+    },
+    {
+      name: 'create_resource',
+      description: 'Create a new .tres resource file',
+      inputSchema: {
+        type: 'object',
+        properties: { resource_path: { type: 'string' }, resource_type: { type: 'string' } },
+        required: ['resource_path'],
+      },
+      handler: (args) => createResource(args as any, bridge),
+    },
+    {
+      name: 'get_resource_preview',
+      description: 'Get a preview texture or icon path from a resource',
+      inputSchema: {
+        type: 'object',
+        properties: { path: { type: 'string' } },
+        required: ['path'],
+      },
+      handler: (args) => getResourcePreview(args as { path: string }, bridge),
+    },
+    {
+      name: 'add_autoload',
+      description: 'Add an autoload singleton to the project',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, path: { type: 'string' } },
+        required: ['name', 'path'],
+      },
+      handler: (args) => addAutoload(args as { name: string; path: string }, bridge),
+    },
+    {
+      name: 'remove_autoload',
+      description: 'Remove an autoload singleton from the project',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+      handler: (args) => removeAutoload(args as { name: string }, bridge),
+    },
+    // Physics tools (6)
+    {
+      name: 'setup_physics_body',
+      description: 'Create a physics body node (StaticBody2D, RigidBody2D, etc.)',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, body_type: { type: 'string' }, position: { type: 'object' } },
+        required: ['node_path', 'body_type'],
+      },
+      handler: (args) => setupPhysicsBody(args as any, bridge),
+    },
+    {
+      name: 'setup_collision',
+      description: 'Set up a collision shape on a physics body',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, shape_type: { type: 'string' }, size: { type: 'object' }, radius: { type: 'number' } },
+        required: ['node_path', 'shape_type'],
+      },
+      handler: (args) => setupCollision(args as any, bridge),
+    },
+    {
+      name: 'set_physics_layers',
+      description: 'Set physics layer and mask bits on a physics body',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layer: { type: 'number' }, mask: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setPhysicsLayers(args as any, bridge),
+    },
+    {
+      name: 'get_physics_layers',
+      description: 'Get physics layer and mask configuration from a physics body',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getPhysicsLayers(args as any, bridge),
+    },
+    {
+      name: 'get_collision_info',
+      description: 'Get collision shape information from a physics body',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getCollisionInfo(args as any, bridge),
+    },
+    {
+      name: 'add_raycast',
+      description: 'Add a RayCast2D node to a physics body',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, name: { type: 'string' }, target_position: { type: 'object' }, enabled: { type: 'boolean' } },
+        required: ['node_path'],
+      },
+      handler: (args) => addRaycast(args as any, bridge),
+    },
+    // Navigation tools (6)
+    {
+      name: 'setup_navigation_region',
+      description: 'Create a NavigationRegion2D with bounds',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, bounds: { type: 'object' }, cell_size: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setupNavigationRegion(args as any, bridge),
+    },
+    {
+      name: 'setup_navigation_agent',
+      description: 'Create a NavigationAgent2D with properties',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, agent_type: { type: 'string' }, radius: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setupNavigationAgent(args as any, bridge),
+    },
+    {
+      name: 'bake_navigation_mesh',
+      description: 'Bake the navigation mesh for a NavigationRegion2D',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => bakeNavigationMesh(args as any, bridge),
+    },
+    {
+      name: 'set_navigation_layers',
+      description: 'Set navigation layer bits on a navigation node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, layers: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setNavigationLayers(args as any, bridge),
+    },
+    {
+      name: 'get_navigation_info',
+      description: 'Get navigation region or agent configuration',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getNavigationInfo(args as any, bridge),
+    },
+    {
+      name: 'get_navigation_path',
+      description: 'Get the navigation path from a NavigationAgent',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getNavigationPath(args as any, bridge),
     },
   ];
 }

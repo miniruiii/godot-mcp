@@ -8,6 +8,9 @@ const InputCommandsClass = preload("res://addons/godot_mcp/editors/input_command
 const AnimationCommandsClass = preload("res://addons/godot_mcp/editors/animation_commands.gd")
 const TilemapCommandsClass = preload("res://addons/godot_mcp/editors/tilemap_commands.gd")
 const ThemeCommandsClass = preload("res://addons/godot_mcp/editors/theme_commands.gd")
+const ResourceCommandsClass = preload("res://addons/godot_mcp/editors/resource_commands.gd")
+const PhysicsCommandsClass = preload("res://addons/godot_mcp/editors/physics_commands.gd")
+const NavigationCommandsClass = preload("res://addons/godot_mcp/editors/navigation_commands.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 var scene_editor_inst: SceneEditorClass
@@ -18,6 +21,9 @@ var input_commands: InputCommandsClass
 var animation_commands: AnimationCommandsClass
 var tilemap_commands: TilemapCommandsClass
 var theme_commands: ThemeCommandsClass
+var resource_commands: ResourceCommandsClass
+var physics_commands: PhysicsCommandsClass
+var navigation_commands: NavigationCommandsClass
 
 func _init():
     scene_editor_inst = SceneEditorClass.new()
@@ -28,6 +34,9 @@ func _init():
     animation_commands = AnimationCommandsClass.new()
     tilemap_commands = TilemapCommandsClass.new()
     theme_commands = ThemeCommandsClass.new()
+    resource_commands = ResourceCommandsClass.new()
+    physics_commands = PhysicsCommandsClass.new()
+    navigation_commands = NavigationCommandsClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -225,6 +234,45 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return theme_commands.set_theme_stylebox(params)
         "theme.get_info":
             return theme_commands.get_theme_info(params)
+        # resource.* routes for resource commands (6 tools)
+        "resource.read":
+            return resource_commands.read_resource(params)
+        "resource.edit":
+            return resource_commands.edit_resource(params)
+        "resource.create":
+            return resource_commands.create_resource(params)
+        "resource.get_preview":
+            return resource_commands.get_resource_preview(params)
+        "resource.add_autoload":
+            return resource_commands.add_autoload(params)
+        "resource.remove_autoload":
+            return resource_commands.remove_autoload(params)
+        # physics.* routes for physics commands (6 tools)
+        "physics.setup_body":
+            return physics_commands.setup_physics_body(params)
+        "physics.setup_collision":
+            return physics_commands.setup_collision(params)
+        "physics.set_layers":
+            return physics_commands.set_physics_layers(params)
+        "physics.get_layers":
+            return physics_commands.get_physics_layers(params)
+        "physics.get_collision_info":
+            return physics_commands.get_collision_info(params)
+        "physics.add_raycast":
+            return physics_commands.add_raycast(params)
+        # navigation.* routes for navigation commands (6 tools)
+        "navigation.setup_region":
+            return navigation_commands.setup_navigation_region(params)
+        "navigation.setup_agent":
+            return navigation_commands.setup_navigation_agent(params)
+        "navigation.bake_mesh":
+            return navigation_commands.bake_navigation_mesh(params)
+        "navigation.set_layers":
+            return navigation_commands.set_navigation_layers(params)
+        "navigation.get_info":
+            return navigation_commands.get_navigation_info(params)
+        "navigation.get_path":
+            return navigation_commands.get_navigation_path(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 
