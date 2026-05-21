@@ -17,6 +17,9 @@ const ParticleCommandsClass = preload("res://addons/godot_mcp/editors/particle_c
 const ShaderCommandsClass = preload("res://addons/godot_mcp/editors/shader_commands.gd")
 const ExportCommandsClass = preload("res://addons/godot_mcp/editors/export_commands.gd")
 const ProfilingCommandsClass = preload("res://addons/godot_mcp/editors/profiling_commands.gd")
+const AnimationTreeCommandsClass = preload("res://addons/godot_mcp/editors/animation_tree_commands.gd")
+const StateMachineCommandsClass = preload("res://addons/godot_mcp/editors/state_machine_commands.gd")
+const BlendTreeCommandsClass = preload("res://addons/godot_mcp/editors/blend_tree_commands.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 var scene_editor_inst: SceneEditorClass
@@ -36,6 +39,9 @@ var particle_commands: ParticleCommandsClass
 var shader_commands: ShaderCommandsClass
 var export_commands: ExportCommandsClass
 var profiling_commands: ProfilingCommandsClass
+var animation_tree_commands: AnimationTreeCommandsClass
+var state_machine_commands: StateMachineCommandsClass
+var blend_tree_commands: BlendTreeCommandsClass
 
 func _init():
     scene_editor_inst = SceneEditorClass.new()
@@ -55,6 +61,9 @@ func _init():
     shader_commands = ShaderCommandsClass.new()
     export_commands = ExportCommandsClass.new()
     profiling_commands = ProfilingCommandsClass.new()
+    animation_tree_commands = AnimationTreeCommandsClass.new()
+    state_machine_commands = StateMachineCommandsClass.new()
+    blend_tree_commands = BlendTreeCommandsClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -353,6 +362,25 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return profiling_commands.get_performance_monitors(params)
         "profiling.get_editor_stats":
             return profiling_commands.get_editor_performance(params)
+        # animtree.* routes for animation tree commands (4 tools)
+        "animtree.create":
+            return animation_tree_commands.create(params)
+        "animtree.get_structure":
+            return animation_tree_commands.get_structure(params)
+        "animtree.set_parameter":
+            return animation_tree_commands.set_parameter(params)
+        "animtree.add_state":
+            return animation_tree_commands.add_state(params)
+        # statemachine.* routes for state machine commands (3 tools)
+        "statemachine.remove_state":
+            return state_machine_commands.remove_state(params)
+        "statemachine.add_transition":
+            return state_machine_commands.add_transition(params)
+        "statemachine.remove_transition":
+            return state_machine_commands.remove_transition(params)
+        # blendtree.* routes for blend tree commands (1 tool)
+        "blendtree.set_node":
+            return blend_tree_commands.set_blend_tree_node(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 

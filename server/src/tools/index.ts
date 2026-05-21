@@ -66,6 +66,17 @@ import {
 import {
   getPerformanceMonitors, getEditorPerformance
 } from './profiling.js';
+import {
+  createAnimationTree, getAnimationTreeStructure, setTreeParameter,
+  addStateMachineState
+} from './animation_tree.js';
+import {
+  removeStateMachineState, addStateMachineTransition,
+  removeStateMachineTransition
+} from './state_machine.js';
+import {
+  setBlendTreeNode
+} from './blend_tree.js';
 
 export interface ToolDefinition {
   name: string;
@@ -1358,6 +1369,89 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: {},
       },
       handler: (args) => getEditorPerformance(args as Record<string, unknown>, bridge),
+    },
+    // AnimationTree tools (4)
+    {
+      name: 'create_animation_tree',
+      description: 'Create an AnimationTree node with root',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, root_type: { type: 'string' }, anim_player_path: { type: 'string' } },
+        required: ['node_path', 'root_type'],
+      },
+      handler: (args) => createAnimationTree(args as any, bridge),
+    },
+    {
+      name: 'get_animation_tree_structure',
+      description: 'Get AnimationTree structure and animations',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getAnimationTreeStructure(args as any, bridge),
+    },
+    {
+      name: 'set_tree_parameter',
+      description: 'Set a parameter on AnimationTree',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, parameter: { type: 'string' }, value: { type: 'any' } },
+        required: ['node_path', 'parameter', 'value'],
+      },
+      handler: (args) => setTreeParameter(args as any, bridge),
+    },
+    {
+      name: 'add_state_machine_state',
+      description: 'Add a state to AnimationTree state machine',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, state_name: { type: 'string' }, state_type: { type: 'string' } },
+        required: ['node_path', 'state_name'],
+      },
+      handler: (args) => addStateMachineState(args as any, bridge),
+    },
+    // StateMachine tools (3)
+    {
+      name: 'remove_state_machine_state',
+      description: 'Remove a state from AnimationTree state machine',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, state_name: { type: 'string' } },
+        required: ['node_path', 'state_name'],
+      },
+      handler: (args) => removeStateMachineState(args as any, bridge),
+    },
+    {
+      name: 'add_state_machine_transition',
+      description: 'Add transition between states',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, from_state: { type: 'string' }, to_state: { type: 'string' } },
+        required: ['node_path', 'from_state', 'to_state'],
+      },
+      handler: (args) => addStateMachineTransition(args as any, bridge),
+    },
+    {
+      name: 'remove_state_machine_transition',
+      description: 'Remove transition between states',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, from_state: { type: 'string' }, to_state: { type: 'string' } },
+        required: ['node_path', 'from_state', 'to_state'],
+      },
+      handler: (args) => removeStateMachineTransition(args as any, bridge),
+    },
+    // BlendTree tools (1)
+    {
+      name: 'set_blend_tree_node',
+      description: 'Add or configure node in BlendTree',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, node_name: { type: 'string' }, node_type: { type: 'string' }, position: { type: 'object' } },
+        required: ['node_path', 'node_name', 'node_type'],
+      },
+      handler: (args) => setBlendTreeNode(args as any, bridge),
     },
   ];
 }
