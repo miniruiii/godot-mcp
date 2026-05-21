@@ -12,6 +12,10 @@ export interface CreateScriptResult {
   created: boolean;
 }
 
+function unescapeTemplate(content: string): string {
+  return content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+}
+
 export function createScript(args: CreateScriptArgs, projectRoot: string): CreateScriptResult {
   const resolved = validateProjectPath(args.script_path, projectRoot);
   if (existsSync(resolved)) {
@@ -19,7 +23,19 @@ export function createScript(args: CreateScriptArgs, projectRoot: string): Creat
   }
 
   const extendsType = args.extends_type || 'Node';
-  const content = args.template || `extends ${extendsType}\n\nfunc _ready():\n    pass\n`;
+  const template = args.template ? unescapeTemplate(args.template) : null;
+  const content = template || `extends ${extendsType}
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+\tpass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+\tpass
+`;
 
   writeFileSync(resolved, content, 'utf-8');
   return { path: args.script_path, created: true };
@@ -69,18 +85,22 @@ export function editScript(args: EditScriptArgs, projectRoot: string): EditScrip
   if (!existsSync(resolved)) {
     throw new Error(`Script not found: ${args.script_path}`);
   }
+  if (!args.replacement) {
+    throw new Error(`Missing required parameter: replacement`);
+  }
 
   const content = readFileSync(resolved, 'utf-8');
   const lines = content.split('\n');
+  const unescapedReplacement = args.replacement.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
 
   if (args.start_line !== undefined && args.end_line !== undefined) {
     const start = Math.max(0, args.start_line - 1);
     const end = Math.min(lines.length, args.end_line);
-    const newLines = args.replacement.split('\n');
+    const newLines = unescapedReplacement.split('\n');
     lines.splice(start, end - start, ...newLines);
   } else {
     lines.length = 0;
-    lines.push(...args.replacement.split('\n'));
+    lines.push(...unescapedReplacement.split('\n'));
   }
 
   const newContent = lines.join('\n');

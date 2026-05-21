@@ -1,4 +1,5 @@
 import { readScene, type SceneNodeResult } from './scene.js';
+import type { GodotBridge } from '../godot-bridge.js';
 
 export interface GetSceneTreeArgs {
   scene_path: string;
@@ -73,10 +74,12 @@ export interface AddNodeResult {
   message: string;
 }
 
-export function addNode(_args: AddNodeArgs, _projectRoot: string, godotConnected: boolean): AddNodeResult {
-  if (!godotConnected) {
+export async function addNode(args: AddNodeArgs, projectRoot: string, bridge: GodotBridge): Promise<AddNodeResult> {
+  if (!bridge.isConnected) {
     return { added: false, message: 'add_node requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
+  await bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
+  await bridge.call('scene.add_node', { scene_path: args.scene_path, parent_path: args.parent_path, node_type: args.node_type, node_name: args.node_name } as Record<string, unknown>);
   return { added: true, message: 'Node added via Godot editor.' };
 }
 
@@ -90,10 +93,13 @@ export interface RemoveNodeResult {
   message: string;
 }
 
-export function removeNode(_args: RemoveNodeArgs, _projectRoot: string, godotConnected: boolean): RemoveNodeResult {
-  if (!godotConnected) {
+export async function removeNode(args: RemoveNodeArgs, projectRoot: string, bridge: GodotBridge): Promise<RemoveNodeResult> {
+  if (!bridge.isConnected) {
     return { removed: false, message: 'remove_node requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
+  await bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
+  await bridge.call('scene.remove_node', { scene_path: args.scene_path, node_path: args.node_path } as Record<string, unknown>);
+  await bridge.call('scene.save', { scene_path: args.scene_path } as Record<string, unknown>);
   return { removed: true, message: 'Node removed via Godot editor.' };
 }
 
@@ -109,9 +115,11 @@ export interface UpdatePropertyResult {
   message: string;
 }
 
-export function updateProperty(_args: UpdatePropertyArgs, _projectRoot: string, godotConnected: boolean): UpdatePropertyResult {
-  if (!godotConnected) {
+export async function updateProperty(args: UpdatePropertyArgs, projectRoot: string, bridge: GodotBridge): Promise<UpdatePropertyResult> {
+  if (!bridge.isConnected) {
     return { updated: false, message: 'update_property requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
+  await bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
+  await bridge.call('scene.update_property', { scene_path: args.scene_path, node_path: args.node_path, property: args.property, value: args.value } as Record<string, unknown>);
   return { updated: true, message: 'Property updated via Godot editor.' };
 }
