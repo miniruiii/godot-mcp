@@ -56,6 +56,16 @@ import {
   addAudioPlayer, addAudioBus, addAudioBusEffect, setAudioBus,
   getAudioBusLayout, getAudioInfo
 } from './audio.js';
+import {
+  createShader, readShader, editShader, assignShaderMaterial,
+  setShaderParam, getShaderParams
+} from './shader.js';
+import {
+  listExportPresets, exportProject, getExportInfo
+} from './export.js';
+import {
+  getPerformanceMonitors, getEditorPerformance
+} from './profiling.js';
 
 export interface ToolDefinition {
   name: string;
@@ -1239,6 +1249,115 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['node_path'],
       },
       handler: (args) => getAudioInfo(args as any, bridge),
+    },
+    // Shader tools (6)
+    {
+      name: 'create_shader',
+      description: 'Create a new .gdshader file with template',
+      inputSchema: {
+        type: 'object',
+        properties: { shader_path: { type: 'string' }, shader_type: { type: 'string' } },
+        required: ['shader_path'],
+      },
+      handler: (args) => createShader(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'read_shader',
+      description: 'Read shader file content',
+      inputSchema: {
+        type: 'object',
+        properties: { shader_path: { type: 'string' } },
+        required: ['shader_path'],
+      },
+      handler: (args) => readShader(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'edit_shader',
+      description: 'Edit shader code by full replacement or line range',
+      inputSchema: {
+        type: 'object',
+        properties: { shader_path: { type: 'string' }, replacement: { type: 'string' }, start_line: { type: 'number' }, end_line: { type: 'number' } },
+        required: ['shader_path', 'replacement'],
+      },
+      handler: (args) => editShader(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'assign_shader_material',
+      description: 'Assign a shader material to a node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, shader_path: { type: 'string' } },
+        required: ['node_path', 'shader_path'],
+      },
+      handler: (args) => assignShaderMaterial(args as any, bridge),
+    },
+    {
+      name: 'set_shader_param',
+      description: 'Set a uniform parameter on a shader material',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, param: { type: 'string' }, value: { type: 'any' } },
+        required: ['node_path', 'param', 'value'],
+      },
+      handler: (args) => setShaderParam(args as any, bridge),
+    },
+    {
+      name: 'get_shader_params',
+      description: 'Get all uniforms from a shader material',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getShaderParams(args as any, bridge),
+    },
+    // Export tools (3)
+    {
+      name: 'list_export_presets',
+      description: 'List all export presets',
+      inputSchema: {
+        type: 'object',
+        properties: { platform: { type: 'string' } },
+      },
+      handler: (args) => listExportPresets(args as any, bridge),
+    },
+    {
+      name: 'export_project',
+      description: 'Export the project using a preset',
+      inputSchema: {
+        type: 'object',
+        properties: { preset: { type: 'string' }, output_path: { type: 'string' } },
+        required: ['preset'],
+      },
+      handler: (args) => exportProject(args as any, bridge),
+    },
+    {
+      name: 'get_export_info',
+      description: 'Get export platform information',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args) => getExportInfo(args as Record<string, unknown>, bridge),
+    },
+    // Profiling tools (2)
+    {
+      name: 'get_performance_monitors',
+      description: 'Get Performance singleton metrics',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args) => getPerformanceMonitors(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'get_editor_performance',
+      description: 'Get editor-related performance stats',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args) => getEditorPerformance(args as Record<string, unknown>, bridge),
     },
   ];
 }

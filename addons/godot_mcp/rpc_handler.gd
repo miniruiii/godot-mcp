@@ -14,6 +14,9 @@ const NavigationCommandsClass = preload("res://addons/godot_mcp/editors/navigati
 const AudioCommandsClass = preload("res://addons/godot_mcp/editors/audio_commands.gd")
 const Scene3dCommandsClass = preload("res://addons/godot_mcp/editors/scene3d_commands.gd")
 const ParticleCommandsClass = preload("res://addons/godot_mcp/editors/particle_commands.gd")
+const ShaderCommandsClass = preload("res://addons/godot_mcp/editors/shader_commands.gd")
+const ExportCommandsClass = preload("res://addons/godot_mcp/editors/export_commands.gd")
+const ProfilingCommandsClass = preload("res://addons/godot_mcp/editors/profiling_commands.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 var scene_editor_inst: SceneEditorClass
@@ -30,6 +33,9 @@ var navigation_commands: NavigationCommandsClass
 var audio_commands: AudioCommandsClass
 var scene3d_commands: Scene3dCommandsClass
 var particle_commands: ParticleCommandsClass
+var shader_commands: ShaderCommandsClass
+var export_commands: ExportCommandsClass
+var profiling_commands: ProfilingCommandsClass
 
 func _init():
     scene_editor_inst = SceneEditorClass.new()
@@ -46,6 +52,9 @@ func _init():
     audio_commands = AudioCommandsClass.new()
     scene3d_commands = Scene3dCommandsClass.new()
     particle_commands = ParticleCommandsClass.new()
+    shader_commands = ShaderCommandsClass.new()
+    export_commands = ExportCommandsClass.new()
+    profiling_commands = ProfilingCommandsClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -319,6 +328,31 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return particle_commands.apply_particle_preset(params)
         "particle.get_info":
             return particle_commands.get_particle_info(params)
+        # shader.* routes for shader commands (6 tools)
+        "shader.create":
+            return shader_commands.create_shader(params)
+        "shader.read":
+            return shader_commands.read_shader(params)
+        "shader.edit":
+            return shader_commands.edit_shader(params)
+        "shader.assign_material":
+            return shader_commands.assign_shader_material(params)
+        "shader.set_param":
+            return shader_commands.set_shader_param(params)
+        "shader.get_params":
+            return shader_commands.get_shader_params(params)
+        # export.* routes for export commands (3 tools)
+        "export.list_presets":
+            return export_commands.list_export_presets(params)
+        "export.run":
+            return export_commands.export_project(params)
+        "export.get_info":
+            return export_commands.get_export_info(params)
+        # profiling.* routes for profiling commands (2 tools)
+        "profiling.get_monitors":
+            return profiling_commands.get_performance_monitors(params)
+        "profiling.get_editor_stats":
+            return profiling_commands.get_editor_performance(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 
