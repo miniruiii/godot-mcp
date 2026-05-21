@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
 export type RunMode = 'full' | 'lite' | 'minimal';
@@ -18,6 +18,7 @@ const DEFAULTS: Config = {
 };
 
 const ALLOWED_MODES: RunMode[] = ['full', 'lite', 'minimal'];
+const ALLOWED_LOG_LEVELS = ['debug', 'info', 'warn', 'error'];
 
 export function loadConfig(path: string): Config {
   let fileConfig: Partial<Config> = {};
@@ -25,18 +26,29 @@ export function loadConfig(path: string): Config {
   try {
     const raw = readFileSync(resolve(path), 'utf-8');
     fileConfig = JSON.parse(raw) as Partial<Config>;
-  } catch {
-    // File missing or unreadable — use defaults
+  } catch (err) {
+    if (existsSync(resolve(path))) {
+      console.warn(`[godot-mcp] Warning: Failed to parse config file ${path}: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  const rawPort = envOrFile('GODOT_MCP_PORT', fileConfig.port, DEFAULTS.port);
+  let port = parseInt(rawPort.toString(), 10);
+  if (isNaN(port) || port < 1 || port > 65535) {
+    port = DEFAULTS.port;
   }
 
   const mode = envOrFile('GODOT_MCP_MODE', fileConfig.mode, DEFAULTS.mode);
   const validatedMode = ALLOWED_MODES.includes(mode as RunMode) ? (mode as RunMode) : DEFAULTS.mode;
 
+  const log_level = envOrFile('GODOT_MCP_LOG_LEVEL', fileConfig.log_level, DEFAULTS.log_level);
+  const validatedLogLevel = ALLOWED_LOG_LEVELS.includes(log_level as string) ? (log_level as string) : DEFAULTS.log_level;
+
   return {
-    port: parseInt(envOrFile('GODOT_MCP_PORT', fileConfig.port, DEFAULTS.port).toString(), 10),
+    port,
     mode: validatedMode,
     project_path: envOrFile('GODOT_MCP_PROJECT_PATH', fileConfig.project_path, DEFAULTS.project_path),
-    log_level: envOrFile('GODOT_MCP_LOG_LEVEL', fileConfig.log_level, DEFAULTS.log_level),
+    log_level: validatedLogLevel,
   };
 }
 
