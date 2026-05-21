@@ -34,20 +34,23 @@ position = Vector2(100, 200)
     expect(result.properties.position).toBe('Vector2(100, 200)');
   });
 
-  it('add_node returns offline error when not connected', () => {
-    const result = addNode({ scene_path: 'res://scenes/main.tscn', parent_path: '/root/Main', node_type: 'Sprite2D', node_name: 'Sprite' }, projectRoot, false);
+  it('add_node returns offline error when not connected', async () => {
+    const result = await addNode({ scene_path: 'res://scenes/main.tscn', parent_path: '/root/Main', node_type: 'Sprite2D', node_name: 'Sprite' }, projectRoot, false);
+    expect(result.offline).toBe(true);
     expect(result.added).toBe(false);
     expect(result.message).toContain('Godot editor');
   });
 
-  it('remove_node returns offline error when not connected', () => {
-    const result = removeNode({ scene_path: 'res://scenes/main.tscn', node_path: '/root/Main/Player' }, projectRoot, false);
+  it('remove_node returns offline error when not connected', async () => {
+    const result = await removeNode({ scene_path: 'res://scenes/main.tscn', node_path: '/root/Main/Player' }, projectRoot, false);
+    expect(result.offline).toBe(true);
     expect(result.removed).toBe(false);
     expect(result.message).toContain('Godot editor');
   });
 
-  it('update_property returns offline error when not connected', () => {
-    const result = updateProperty({ scene_path: 'res://scenes/main.tscn', node_path: '/root/Main/Player', property: 'position', value: 'Vector2(50, 50)' }, projectRoot, false);
+  it('update_property returns offline error when not connected', async () => {
+    const result = await updateProperty({ scene_path: 'res://scenes/main.tscn', node_path: '/root/Main/Player', property: 'position', value: 'Vector2(50, 50)' }, projectRoot, false);
+    expect(result.offline).toBe(true);
     expect(result.updated).toBe(false);
     expect(result.message).toContain('Godot editor');
   });

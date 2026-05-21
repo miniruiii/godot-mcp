@@ -43,8 +43,9 @@ position = Vector2(100, 200)
     expect(() => readScene({ scene_path: 'res://scenes/missing.tscn' }, projectRoot)).toThrow('Scene not found');
   });
 
-  it('save_scene returns offline error when not connected', () => {
-    const result = saveScene({ scene_path: 'res://scenes/main.tscn' }, projectRoot, false);
+  it('save_scene returns offline error when not connected', async () => {
+    const result = await saveScene({ scene_path: 'res://scenes/main.tscn' }, projectRoot, false);
+    expect(result.offline).toBe(true);
     expect(result.saved).toBe(false);
     expect(result.message).toContain('Godot editor');
   });
