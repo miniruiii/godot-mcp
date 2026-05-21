@@ -9,3 +9,4 @@ coverage/
 *.tsbuildinfo
 tmp/
 Thumbs.db
+.godot-test/
