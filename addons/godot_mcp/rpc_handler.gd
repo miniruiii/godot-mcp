@@ -5,6 +5,9 @@ const ScriptEditorClass = preload("res://addons/godot_mcp/editors/script_editor.
 const ProjectEditorClass = preload("res://addons/godot_mcp/editors/project_editor.gd")
 const RuntimeCommandsClass = preload("res://addons/godot_mcp/editors/runtime_commands.gd")
 const InputCommandsClass = preload("res://addons/godot_mcp/editors/input_commands.gd")
+const AnimationCommandsClass = preload("res://addons/godot_mcp/editors/animation_commands.gd")
+const TilemapCommandsClass = preload("res://addons/godot_mcp/editors/tilemap_commands.gd")
+const ThemeCommandsClass = preload("res://addons/godot_mcp/editors/theme_commands.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 var scene_editor_inst: SceneEditorClass
@@ -12,6 +15,9 @@ var script_editor_inst: ScriptEditorClass
 var project_editor_inst: ProjectEditorClass
 var runtime_commands: RuntimeCommandsClass
 var input_commands: InputCommandsClass
+var animation_commands: AnimationCommandsClass
+var tilemap_commands: TilemapCommandsClass
+var theme_commands: ThemeCommandsClass
 
 func _init():
     scene_editor_inst = SceneEditorClass.new()
@@ -19,6 +25,9 @@ func _init():
     project_editor_inst = ProjectEditorClass.new()
     runtime_commands = RuntimeCommandsClass.new()
     input_commands = InputCommandsClass.new()
+    animation_commands = AnimationCommandsClass.new()
+    tilemap_commands = TilemapCommandsClass.new()
+    theme_commands = ThemeCommandsClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -177,6 +186,45 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return scene_editor_inst.set_node_groups(params)
         "node.find_in_group":
             return scene_editor_inst.find_nodes_in_group(params)
+        # animation.* routes for animation commands (6 tools)
+        "animation.list":
+            return animation_commands.list_animations(params)
+        "animation.create":
+            return animation_commands.create_animation(params)
+        "animation.add_track":
+            return animation_commands.add_animation_track(params)
+        "animation.set_keyframe":
+            return animation_commands.set_animation_keyframe(params)
+        "animation.get_info":
+            return animation_commands.get_animation_info(params)
+        "animation.remove":
+            return animation_commands.remove_animation(params)
+        # tilemap.* routes for tilemap commands (6 tools)
+        "tilemap.set_cell":
+            return tilemap_commands.tilemap_set_cell(params)
+        "tilemap.get_cell":
+            return tilemap_commands.tilemap_get_cell(params)
+        "tilemap.clear":
+            return tilemap_commands.tilemap_clear(params)
+        "tilemap.get_info":
+            return tilemap_commands.tilemap_get_info(params)
+        "tilemap.get_used_cells":
+            return tilemap_commands.tilemap_get_used_cells(params)
+        "tilemap.fill_rect":
+            return tilemap_commands.tilemap_fill_rect(params)
+        # theme.* routes for theme commands (6 tools)
+        "theme.create":
+            return theme_commands.create_theme(params)
+        "theme.set_color":
+            return theme_commands.set_theme_color(params)
+        "theme.set_constant":
+            return theme_commands.set_theme_constant(params)
+        "theme.set_font_size":
+            return theme_commands.set_theme_font_size(params)
+        "theme.set_stylebox":
+            return theme_commands.set_theme_stylebox(params)
+        "theme.get_info":
+            return theme_commands.get_theme_info(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 
