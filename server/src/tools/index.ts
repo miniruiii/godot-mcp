@@ -6,6 +6,20 @@ import { readScene, createScene, saveScene, openScene } from './scene.js';
 import { getSceneTree, getNode, addNode, removeNode, updateProperty } from './node.js';
 import { createScript, readScript, editScript } from './script.js';
 import { runProject, getOutputLog } from './editor.js';
+import {
+  getGameSceneTree, getGameNodeProperties, setGameNodeProperty, executeGameScript,
+  findNodesByScript, getAutoload, batchGetProperties, findUiElements, clickButtonByText,
+  waitForNode, findNearbyNodes, navigateTo, moveTo, getGameNodeProperty, captureFrames,
+  monitorProperties, startRecording, stopRecording, replayRecording
+} from './runtime.js';
+import {
+  simulateKey, simulateMouseClick, simulateMouseMove, simulateAction,
+  simulateSequence, getInputActions, setInputAction
+} from './input.js';
+import {
+  duplicateNode, moveNode, connectSignal, disconnectSignal,
+  getNodeGroups, setNodeGroups, findNodesInGroup, renameNode
+} from './node.js';
 
 export interface ToolDefinition {
   name: string;
@@ -196,6 +210,331 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['path', 'content'],
       },
       handler: (args) => writeFileTool(args as any, projectRoot),
+    },
+    // Runtime tools (19)
+    {
+      name: 'get_game_scene_tree',
+      description: 'Get the active scene tree from a running Godot game',
+      inputSchema: { type: 'object', properties: {} },
+      handler: () => getGameSceneTree({}, projectRoot, bridge),
+    },
+    {
+      name: 'get_game_node_properties',
+      description: 'Get all properties of a node in a running Godot game',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getGameNodeProperties(args as { node_path: string }, projectRoot, bridge),
+    },
+    {
+      name: 'set_game_node_property',
+      description: 'Set a property value on a node in a running Godot game',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, property: { type: 'string' }, value: { type: 'string' } },
+        required: ['node_path', 'property', 'value'],
+      },
+      handler: (args) => setGameNodeProperty(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'execute_game_script',
+      description: 'Execute arbitrary GDScript code in a running Godot game',
+      inputSchema: {
+        type: 'object',
+        properties: { code: { type: 'string' } },
+        required: ['code'],
+      },
+      handler: (args) => executeGameScript(args as { code: string }, projectRoot, bridge),
+    },
+    {
+      name: 'find_nodes_by_script',
+      description: 'Find all nodes in the current scene tree that use a specific script',
+      inputSchema: {
+        type: 'object',
+        properties: { script_path: { type: 'string' } },
+        required: ['script_path'],
+      },
+      handler: (args) => findNodesByScript(args as { script_path: string }, projectRoot, bridge),
+    },
+    {
+      name: 'get_autoload',
+      description: 'Get the autoload singleton by name',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+      handler: (args) => getAutoload(args as { name: string }, projectRoot, bridge),
+    },
+    {
+      name: 'batch_get_properties',
+      description: 'Get properties from multiple nodes in a single call',
+      inputSchema: {
+        type: 'object',
+        properties: { node_paths: { type: 'array', items: { type: 'string' } } },
+        required: ['node_paths'],
+      },
+      handler: (args) => batchGetProperties(args as { node_paths: string[] }, projectRoot, bridge),
+    },
+    {
+      name: 'find_ui_elements',
+      description: 'Find UI elements by type or text content',
+      inputSchema: {
+        type: 'object',
+        properties: { type: { type: 'string' }, text: { type: 'string' } },
+      },
+      handler: (args) => findUiElements(args as { type?: string; text?: string }, projectRoot, bridge),
+    },
+    {
+      name: 'click_button_by_text',
+      description: 'Click a button UI element that contains the specified text',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string' } },
+        required: ['text'],
+      },
+      handler: (args) => clickButtonByText(args as { text: string }, projectRoot, bridge),
+    },
+    {
+      name: 'wait_for_node',
+      description: 'Wait for a node to appear in the scene tree',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, timeout_ms: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => waitForNode(args as { node_path: string; timeout_ms?: number }, projectRoot, bridge),
+    },
+    {
+      name: 'find_nearby_nodes',
+      description: 'Find nodes near a given node within a specified distance',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, distance: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => findNearbyNodes(args as { node_path: string; distance?: number }, projectRoot, bridge),
+    },
+    {
+      name: 'navigate_to',
+      description: 'Navigate to a target node (e.g., for UI navigation)',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, target: { type: 'string' } },
+        required: ['node_path', 'target'],
+      },
+      handler: (args) => navigateTo(args as { node_path: string; target: string }, projectRoot, bridge),
+    },
+    {
+      name: 'move_to',
+      description: 'Move to a target position or node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, target: { type: 'string' } },
+        required: ['node_path', 'target'],
+      },
+      handler: (args) => moveTo(args as { node_path: string; target: string }, projectRoot, bridge),
+    },
+    {
+      name: 'get_game_node_property',
+      description: 'Get a single property value from a node in a running Godot game',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, property: { type: 'string' } },
+        required: ['node_path', 'property'],
+      },
+      handler: (args) => getGameNodeProperty(args as { node_path: string; property: string }, projectRoot, bridge),
+    },
+    {
+      name: 'capture_frames',
+      description: 'Capture frames from the game viewport for replay/inspection',
+      inputSchema: {
+        type: 'object',
+        properties: { count: { type: 'number' } },
+      },
+      handler: (args) => captureFrames(args as { count?: number }, projectRoot, bridge),
+    },
+    {
+      name: 'monitor_properties',
+      description: 'Start monitoring property changes on a node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, properties: { type: 'array', items: { type: 'string' } } },
+        required: ['node_path', 'properties'],
+      },
+      handler: (args) => monitorProperties(args as { node_path: string; properties: string[] }, projectRoot, bridge),
+    },
+    {
+      name: 'start_recording',
+      description: 'Start recording user input for replay',
+      inputSchema: { type: 'object', properties: {} },
+      handler: () => startRecording({}, projectRoot, bridge),
+    },
+    {
+      name: 'stop_recording',
+      description: 'Stop recording and get the recorded input data',
+      inputSchema: { type: 'object', properties: {} },
+      handler: () => stopRecording({}, projectRoot, bridge),
+    },
+    {
+      name: 'replay_recording',
+      description: 'Replay a previously recorded input sequence',
+      inputSchema: {
+        type: 'object',
+        properties: { data: { type: 'object' } },
+        required: ['data'],
+      },
+      handler: (args) => replayRecording(args as { data: unknown }, projectRoot, bridge),
+    },
+    // Input tools (7)
+    {
+      name: 'simulate_key',
+      description: 'Simulate a keyboard key press or release',
+      inputSchema: {
+        type: 'object',
+        properties: { keycode: { type: 'string' }, pressed: { type: 'boolean' }, modifiers: { type: 'array', items: { type: 'string' } } },
+        required: ['keycode', 'pressed'],
+      },
+      handler: (args) => simulateKey(args as any, bridge),
+    },
+    {
+      name: 'simulate_mouse_click',
+      description: 'Simulate a mouse button click at a position',
+      inputSchema: {
+        type: 'object',
+        properties: { position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } }, button: { type: 'number' }, pressed: { type: 'boolean' } },
+        required: ['position', 'button', 'pressed'],
+      },
+      handler: (args) => simulateMouseClick(args as any, bridge),
+    },
+    {
+      name: 'simulate_mouse_move',
+      description: 'Simulate mouse movement to a position',
+      inputSchema: {
+        type: 'object',
+        properties: { position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } } },
+        required: ['position'],
+      },
+      handler: (args) => simulateMouseMove(args as any, bridge),
+    },
+    {
+      name: 'simulate_action',
+      description: 'Simulate an input action (e.g., "ui_accept")',
+      inputSchema: {
+        type: 'object',
+        properties: { action: { type: 'string' }, pressed: { type: 'boolean' } },
+        required: ['action', 'pressed'],
+      },
+      handler: (args) => simulateAction(args as any, bridge),
+    },
+    {
+      name: 'simulate_sequence',
+      description: 'Simulate a sequence of input events',
+      inputSchema: {
+        type: 'object',
+        properties: { events: { type: 'array', items: { type: 'object' } } },
+        required: ['events'],
+      },
+      handler: (args) => simulateSequence(args as any, bridge),
+    },
+    {
+      name: 'get_input_actions',
+      description: 'Get list of all defined input actions',
+      inputSchema: { type: 'object', properties: {} },
+      handler: () => getInputActions({}, bridge),
+    },
+    {
+      name: 'set_input_action',
+      description: 'Add or modify an input action with a new event',
+      inputSchema: {
+        type: 'object',
+        properties: { action: { type: 'string' }, event: { type: 'object' } },
+        required: ['action', 'event'],
+      },
+      handler: (args) => setInputAction(args as any, bridge),
+    },
+    // Node tools (8)
+    {
+      name: 'duplicate_node',
+      description: 'Duplicate a node in a scene with a new name',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'new_name'],
+      },
+      handler: (args) => duplicateNode(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'move_node',
+      description: 'Move a node to a new parent in the scene tree',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_parent_path: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'new_parent_path'],
+      },
+      handler: (args) => moveNode(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'connect_signal',
+      description: 'Connect a signal from one node to a method on another',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
+      },
+      handler: (args) => connectSignal(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'disconnect_signal',
+      description: 'Disconnect a signal connection between nodes',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
+      },
+      handler: (args) => disconnectSignal(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'get_node_groups',
+      description: 'Get all groups that a node belongs to',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
+        required: ['scene_path', 'node_path'],
+      },
+      handler: (args) => getNodeGroups(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'set_node_groups',
+      description: 'Add or remove a node from groups',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, add_to_groups: { type: 'array', items: { type: 'string' } }, remove_from_groups: { type: 'array', items: { type: 'string' } } },
+        required: ['scene_path', 'node_path'],
+      },
+      handler: (args) => setNodeGroups(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'find_nodes_in_group',
+      description: 'Find all nodes that belong to a specific group',
+      inputSchema: {
+        type: 'object',
+        properties: { group: { type: 'string' } },
+        required: ['group'],
+      },
+      handler: (args) => findNodesInGroup(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'rename_node',
+      description: 'Rename a node in a scene',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'new_name'],
+      },
+      handler: (args) => renameNode(args as any, projectRoot, bridge),
     },
   ];
 }
