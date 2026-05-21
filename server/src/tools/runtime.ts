@@ -264,7 +264,7 @@ export interface CaptureFramesArgs {
 }
 
 export interface CaptureFramesResult {
-  captured?: boolean;
+  captured?: number;
   frames?: string[];
   offline?: boolean;
   message?: string;

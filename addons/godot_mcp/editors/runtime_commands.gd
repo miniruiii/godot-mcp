@@ -284,8 +284,8 @@ func _find_nodes_by_distance_recursive(node: Node, origin: Vector2, max_dist: fl
 		_find_nodes_by_distance_recursive(child, origin, max_dist, out, child_path, origin_node)
 
 func navigate_to(params: Dictionary) -> Dictionary:
-	var agent_path = params.get("agent_path", "")
-	var target_pos_str = params.get("target_position", "")
+	var agent_path = params.get("node_path", "")
+	var target_pos_str = params.get("target", "")
 
 	var agent = _find_game_node(agent_path)
 	if agent == null:
