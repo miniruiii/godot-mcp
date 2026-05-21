@@ -6,9 +6,18 @@ const Utils = preload("res://addons/godot_mcp/utils.gd")
 const ERR_NO_MAIN_LOOP = -32000
 const ERR_NODE_NOT_FOUND = -32001
 const ERR_PARENT_NOT_FOUND = -32002
+const ERR_PROPERTY_NOT_FOUND = -32003
+const ERR_MISSING_CODE = -32004
+const ERR_MISSING_AUTOLOAD_NAME = -32005
+const ERR_MISSING_NODE_PATHS = -32006
+const ERR_MISSING_TEXT = -32007
+const ERR_NOT_NAVIGATION_AGENT = -32008
+const ERR_INVALID_TARGET_FORMAT = -32009
 const ERR_SCRIPT_COMPILATION_FAILED = -32010
 const ERR_SCRIPT_NOT_FOUND = -32011
 const ERR_AUTOLOAD_NOT_FOUND = -32012
+const ERR_INVALID_FRAME_COUNT = -32013
+const ERR_NO_RECORDING_DATA = -32014
 
 func _find_game_node(path: String) -> Node:
 	var main_loop = Engine.get_main_loop()
@@ -65,7 +74,7 @@ func set_node_property(params: Dictionary) -> Dictionary:
 		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found: %s" % node_path } }
 
 	if not property in target:
-		return { "error": { "code": -32003, "message": "Property not found: %s" % property } }
+		return { "error": { "code": ERR_PROPERTY_NOT_FOUND, "message": "Property not found: %s" % property } }
 
 	var new_value = Utils.parse_value(value_str)
 	target.set(property, new_value)
@@ -74,7 +83,7 @@ func set_node_property(params: Dictionary) -> Dictionary:
 func execute_script(params: Dictionary) -> Dictionary:
 	var code = params.get("code", "")
 	if code == "":
-		return { "error": { "code": -32004, "message": "Missing code parameter" } }
+		return { "error": { "code": ERR_MISSING_CODE, "message": "Missing code parameter" } }
 
 	var script = GDScript.new()
 	script.source_code = code
@@ -122,7 +131,7 @@ func _find_nodes_with_script_recursive(node: Node, target_script: Script, out: A
 func get_autoload(params: Dictionary) -> Dictionary:
 	var name = params.get("name", "")
 	if name == "":
-		return { "error": { "code": -32005, "message": "Missing autoload name" } }
+		return { "error": { "code": ERR_MISSING_AUTOLOAD_NAME, "message": "Missing autoload name" } }
 
 	var path = "autoload/" + name
 	if not ProjectSettings.has_setting(path):
@@ -134,7 +143,7 @@ func get_autoload(params: Dictionary) -> Dictionary:
 func batch_get_properties(params: Dictionary) -> Dictionary:
 	var node_paths = params.get("node_paths", [])
 	if node_paths.size() == 0:
-		return { "error": { "code": -32006, "message": "Missing node_paths parameter" } }
+		return { "error": { "code": ERR_MISSING_NODE_PATHS, "message": "Missing node_paths parameter" } }
 
 	var results = []
 	for node_path in node_paths:
@@ -195,7 +204,7 @@ func click_button_by_text(params: Dictionary) -> Dictionary:
 
 	var button_text = params.get("text", "")
 	if button_text == "":
-		return { "error": { "code": -32007, "message": "Missing text parameter" } }
+		return { "error": { "code": ERR_MISSING_TEXT, "message": "Missing text parameter" } }
 
 	var root = main_loop.root
 	var button = _find_button_by_text_recursive(root, button_text)
@@ -227,24 +236,14 @@ func wait_for_node(params: Dictionary) -> Dictionary:
 	if node != null:
 		return { "result": { "found": true, "node_path": node_path } }
 
-	var main_loop = Engine.get_main_loop()
-	var root = main_loop.root
-
 	var start_time = Time.get_ticks_msec()
-	var tree_ready_sent = false
 
 	while Time.get_ticks_msec() - start_time < timeout_ms:
 		node = _find_game_node(node_path)
 		if node != null:
 			return { "result": { "found": true, "node_path": node_path } }
-		# Use a small sleep via timer instead of task_wait_frame for faster checking
-		var timer = Timer.new()
-		timer.wait_time = 0.01
-		timer.one_shot = true
-		root.add_child(timer)
-		timer.start()
-		await timer.timeout
-		timer.queue_free()
+		# Use create_timer for efficient non-busy waiting
+		await get_tree().create_timer(0.01).timeout
 
 	return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found within timeout: %s" % node_path } }
 
@@ -293,11 +292,11 @@ func navigate_to(params: Dictionary) -> Dictionary:
 		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Navigation agent not found: %s" % agent_path } }
 
 	if not agent has("target_position"):
-		return { "error": { "code": -32008, "message": "Node is not a NavigationAgent" } }
+		return { "error": { "code": ERR_NOT_NAVIGATION_AGENT, "message": "Node is not a NavigationAgent" } }
 
 	var parts = target_pos_str.strip_edges().split(",")
 	if parts.size() != 3:
-		return { "error": { "code": -32009, "message": "Invalid target_position format, expected 'x,y,z'" } }
+		return { "error": { "code": ERR_INVALID_TARGET_FORMAT, "message": "Invalid target_position format, expected 'x,y,z'" } }
 
 	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
 	agent.target_position = target
@@ -305,24 +304,13 @@ func navigate_to(params: Dictionary) -> Dictionary:
 	return { "result": { "navigating": true, "target": target_pos_str } }
 
 func move_to(params: Dictionary) -> Dictionary:
-	var agent_path = params.get("agent_path", "")
-	var target_pos_str = params.get("target_position", "")
-
-	var agent = _find_game_node(agent_path)
-	if agent == null:
-		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Navigation agent not found: %s" % agent_path } }
-
-	if not agent has("target_position"):
-		return { "error": { "code": -32008, "message": "Node is not a NavigationAgent" } }
-
-	var parts = target_pos_str.strip_edges().split(",")
-	if parts.size() != 3:
-		return { "error": { "code": -32009, "message": "Invalid target_position format, expected 'x,y,z'" } }
-
-	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
-	agent.target_position = target
-	agent.navigate()
-	return { "result": { "moving": true, "target": target_pos_str } }
+	var result = navigate_to(params)
+	if "error" in result:
+		return result
+	# Change the key from "navigating" to "moving" in the result
+	if "result" in result and "navigating" in result["result"]:
+		result["result"]["moving"] = result["result"].pop("navigating")
+	return result
 
 func get_game_node_property(params: Dictionary) -> Dictionary:
 	var node_path = params.get("node_path", "")
@@ -333,7 +321,7 @@ func get_game_node_property(params: Dictionary) -> Dictionary:
 		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found: %s" % node_path } }
 
 	if not property in target:
-		return { "error": { "code": -32003, "message": "Property not found: %s" % property } }
+		return { "error": { "code": ERR_PROPERTY_NOT_FOUND, "message": "Property not found: %s" % property } }
 
 	var val = target.get(property)
 	return { "result": { "property": property, "value": Utils.value_to_string(val) } }
@@ -341,7 +329,7 @@ func get_game_node_property(params: Dictionary) -> Dictionary:
 func capture_frames(params: Dictionary) -> Dictionary:
 	var count = params.get("count", 1)
 	if count < 1 or count > 100:
-		return { "error": { "code": -32013, "message": "Frame count must be between 1 and 100" } }
+		return { "error": { "code": ERR_INVALID_FRAME_COUNT, "message": "Frame count must be between 1 and 100" } }
 
 	var viewport = Engine.get_main_loop().root.get_viewport()
 	var images = []
@@ -385,7 +373,7 @@ func stop_recording(params: Dictionary) -> Dictionary:
 func replay_recording(params: Dictionary) -> Dictionary:
 	var data = params.get("data", [])
 	if data.size() == 0:
-		return { "error": { "code": -32014, "message": "No recording data provided" } }
+		return { "error": { "code": ERR_NO_RECORDING_DATA, "message": "No recording data provided" } }
 
 	for frame_data in data:
 		var input_events = frame_data.get("input_events", [])
@@ -393,7 +381,7 @@ func replay_recording(params: Dictionary) -> Dictionary:
 			var event = _parse_input_event(event_data)
 			if event:
 				Input.parse_input_event(event)
-		await MainLoop.task_wait_frame()
+		await get_tree().create_timer(0).timeout
 
 	return { "result": { "replayed": true, "frame_count": data.size() } }
 
