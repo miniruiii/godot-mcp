@@ -139,6 +139,12 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return scene_editor_inst.disconnect_signal(params)
         "node.rename":
             return scene_editor_inst.rename_node(params)
+        "node.get_groups":
+            return scene_editor_inst.get_node_groups(params)
+        "node.set_groups":
+            return scene_editor_inst.set_node_groups(params)
+        "node.find_in_group":
+            return scene_editor_inst.find_nodes_in_group(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 
