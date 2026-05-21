@@ -47,6 +47,6 @@ npm install -g godot-mcp
 npx godot-mcp
 ```
 
-**工具：** `list_project_files` · `read_scene` · `create_script` · `edit_script` · `get_node` · `run_project` · 等共 52 个。
+**工具：** `list_project_files` · `read_scene` · `create_script` · `edit_script` · `get_node` · `run_project` · 等共 69 个。
 
 **协议：** MIT
