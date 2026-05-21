@@ -2,10 +2,10 @@ import type { GodotBridge } from '../godot-bridge.js';
 import type { Config } from '../config.js';
 import { readFileTool, writeFileTool } from './file.js';
 import { listProjectFiles, readProjectSettings, getProjectInfo } from './project.js';
-import { readScene, createScene, saveScene, openScene } from './scene.js';
+import { readScene, createScene, saveScene, openScene, getSceneFileContent, deleteScene, addSceneInstance, playScene, stopScene, getSignals } from './scene.js';
 import { getSceneTree, getNode, addNode, removeNode, updateProperty } from './node.js';
-import { createScript, readScript, editScript } from './script.js';
-import { runProject, getOutputLog } from './editor.js';
+import { createScript, readScript, editScript, listScripts, attachScript, validateScript, searchInFiles } from './script.js';
+import { runProject, getOutputLog, getEditorErrors, getEditorScreenshot, getGameScreenshot, executeEditorScript, clearOutput, reloadPlugin, reloadProject } from './editor.js';
 import {
   getGameSceneTree, getGameNodeProperties, setGameNodeProperty, executeGameScript,
   findNodesByScript, getAutoload, batchGetProperties, findUiElements, clickButtonByText,
@@ -93,7 +93,63 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       },
       handler: (args) => openScene(args as { scene_path: string }, projectRoot, bridge),
     },
+    // Scene tools (6)
     {
+      name: 'get_scene_file_content',
+      description: 'Get the raw content of a scene file',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' } },
+        required: ['scene_path'],
+      },
+      handler: (args) => getSceneFileContent(args as { scene_path: string }, projectRoot),
+    },
+    {
+      name: 'delete_scene',
+      description: 'Delete a scene file from the project',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' } },
+        required: ['scene_path'],
+      },
+      handler: (args) => deleteScene(args as { scene_path: string }, projectRoot, bridge),
+    },
+    {
+      name: 'add_scene_instance',
+      description: 'Add a scene instance as a child node',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, parent_path: { type: 'string' }, name: { type: 'string' } },
+        required: ['scene_path', 'parent_path'],
+      },
+      handler: (args) => addSceneInstance(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'play_scene',
+      description: 'Play a scene in the Godot editor',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' } },
+      },
+      handler: (args) => playScene(args as { scene_path?: string }, projectRoot, bridge),
+    },
+    {
+      name: 'stop_scene',
+      description: 'Stop the currently playing scene',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => stopScene(args, projectRoot, bridge),
+    },
+    {
+      name: 'get_signals',
+      description: 'Get the list of signals for a node in a scene',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getSignals(args as { node_path: string }, projectRoot, bridge),
+    },
+    // Node tools (continued)
       name: 'get_scene_tree',
       description: 'Get the full node tree of a scene',
       inputSchema: {
@@ -173,6 +229,42 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       },
       handler: (args) => editScript(args as any, projectRoot),
     },
+    // Script tools (4)
+    {
+      name: 'list_scripts',
+      description: 'List all scripts in the Godot project',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => listScripts(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'attach_script',
+      description: 'Attach a script to a node in the current scene',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, script_path: { type: 'string' } },
+        required: ['node_path', 'script_path'],
+      },
+      handler: (args) => attachScript(args as { node_path: string; script_path: string }, bridge),
+    },
+    {
+      name: 'validate_script',
+      description: 'Validate a script file or code content',
+      inputSchema: {
+        type: 'object',
+        properties: { script_path: { type: 'string' }, code: { type: 'string' } },
+      },
+      handler: (args) => validateScript(args as { script_path?: string; code?: string }, bridge),
+    },
+    {
+      name: 'search_in_files',
+      description: 'Search for text across script files in the project',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string' }, extensions: { type: 'array', items: { type: 'string' } }, case_sensitive: { type: 'boolean' } },
+        required: ['text'],
+      },
+      handler: (args) => searchInFiles(args as { text: string; extensions?: string[]; case_sensitive?: boolean }, bridge),
+    },
     {
       name: 'run_project',
       description: 'Run the Godot project',
@@ -190,6 +282,53 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { lines: { type: 'number' } },
       },
       handler: (args) => getOutputLog(args as any, bridge),
+    },
+    // Editor tools (7)
+    {
+      name: 'get_editor_errors',
+      description: 'Get current editor errors from the Godot console',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => getEditorErrors(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'get_editor_screenshot',
+      description: 'Capture a screenshot of the Godot editor window',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => getEditorScreenshot(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'get_game_screenshot',
+      description: 'Capture a screenshot of the running game viewport',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => getGameScreenshot(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'execute_editor_script',
+      description: 'Execute arbitrary script code in the Godot editor context',
+      inputSchema: {
+        type: 'object',
+        properties: { code: { type: 'string' } },
+        required: ['code'],
+      },
+      handler: (args) => executeEditorScript(args as { code: string }, bridge),
+    },
+    {
+      name: 'clear_output',
+      description: 'Clear the Godot editor output log',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => clearOutput(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'reload_plugin',
+      description: 'Reload the Godot MCP plugin',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => reloadPlugin(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'reload_project',
+      description: 'Reload the Godot project',
+      inputSchema: { type: 'object', properties: {} },
+      handler: (args) => reloadProject(args as Record<string, unknown>, bridge),
     },
     {
       name: 'read_file',
