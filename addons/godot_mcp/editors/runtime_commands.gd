@@ -87,6 +87,7 @@ func execute_script(params: Dictionary) -> Dictionary:
 	if instance.has_method("_ready"):
 		instance._ready()
 
+	instance.free()
 	return { "result": { "executed": true } }
 
 func find_nodes_by_script(params: Dictionary) -> Dictionary:
@@ -222,12 +223,28 @@ func wait_for_node(params: Dictionary) -> Dictionary:
 	var node_path = params.get("node_path", "")
 	var timeout_ms = params.get("timeout_ms", 5000)
 
+	var node = _find_game_node(node_path)
+	if node != null:
+		return { "result": { "found": true, "node_path": node_path } }
+
+	var main_loop = Engine.get_main_loop()
+	var root = main_loop.root
+
 	var start_time = Time.get_ticks_msec()
+	var tree_ready_sent = false
+
 	while Time.get_ticks_msec() - start_time < timeout_ms:
-		var node = _find_game_node(node_path)
+		node = _find_game_node(node_path)
 		if node != null:
 			return { "result": { "found": true, "node_path": node_path } }
-		await MainLoop.task_wait_frame()
+		# Use a small sleep via timer instead of task_wait_frame for faster checking
+		var timer = Timer.new()
+		timer.wait_time = 0.01
+		timer.one_shot = true
+		root.add_child(timer)
+		timer.start()
+		await timer.timeout
+		timer.queue_free()
 
 	return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found within timeout: %s" % node_path } }
 
@@ -243,13 +260,13 @@ func find_nearby_nodes(params: Dictionary) -> Dictionary:
 	if origin == null:
 		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Origin node not found: %s" % origin_path } }
 
-	var origin_pos = origin.global_position
+	var origin_pos: Vector2 = origin.global_position
 	var result = []
 	_find_nodes_by_distance_recursive(main_loop.root, origin_pos, max_distance, result, "", origin)
 
 	return { "result": { "nodes": result } }
 
-func _find_nodes_by_distance_recursive(node: Node, origin: Vector3, max_dist: float, out: Array, path: String, origin_node: Node) -> void:
+func _find_nodes_by_distance_recursive(node: Node, origin: Vector2, max_dist: float, out: Array, path: String, origin_node: Node) -> void:
 	if node == origin_node:
 		return
 
@@ -284,7 +301,7 @@ func navigate_to(params: Dictionary) -> Dictionary:
 
 	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
 	agent.target_position = target
-	agent.navigate_to_target()
+	agent.navigate()
 	return { "result": { "navigating": true, "target": target_pos_str } }
 
 func move_to(params: Dictionary) -> Dictionary:
@@ -304,6 +321,7 @@ func move_to(params: Dictionary) -> Dictionary:
 
 	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
 	agent.target_position = target
+	agent.navigate()
 	return { "result": { "moving": true, "target": target_pos_str } }
 
 func get_game_node_property(params: Dictionary) -> Dictionary:
@@ -328,7 +346,6 @@ func capture_frames(params: Dictionary) -> Dictionary:
 	var viewport = Engine.get_main_loop().root.get_viewport()
 	var images = []
 	for i in range(count):
-		await MainLoop.task_wait_frame()
 		var img = viewport.get_texture().get_image()
 		images.append(img.get_data())
 
@@ -371,6 +388,33 @@ func replay_recording(params: Dictionary) -> Dictionary:
 		return { "error": { "code": -32014, "message": "No recording data provided" } }
 
 	for frame_data in data:
+		var input_events = frame_data.get("input_events", [])
+		for event_data in input_events:
+			var event = _parse_input_event(event_data)
+			if event:
+				Input.parse_input_event(event)
 		await MainLoop.task_wait_frame()
 
 	return { "result": { "replayed": true, "frame_count": data.size() } }
+
+func _parse_input_event(event_data: Dictionary) -> InputEvent:
+	var event_type = event_data.get("type", "")
+	if event_type == "key":
+		var event = InputEventKey.new()
+		event.scancode = event_data.get("scancode", 0)
+		event.pressed = event_data.get("pressed", false)
+		return event
+	elif event_type == "mouse_button":
+		var event = InputEventMouseButton.new()
+		event.button_index = event_data.get("button_index", 0)
+		event.pressed = event_data.get("pressed", false)
+		event.position = event_data.get("position", Vector2.ZERO)
+		event.global_position = event_data.get("global_position", Vector2.ZERO)
+		return event
+	elif event_type == "mouse_motion":
+		var event = InputEventMouseMotion.new()
+		event.position = event_data.get("position", Vector2.ZERO)
+		event.global_position = event_data.get("global_position", Vector2.ZERO)
+		event.relative = event_data.get("relative", Vector2.ZERO)
+		return event
+	return null
