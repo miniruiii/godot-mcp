@@ -1,0 +1,376 @@
+extends RefCounted
+
+const Utils = preload("res://addons/godot_mcp/utils.gd")
+
+# Error codes
+const ERR_NO_MAIN_LOOP = -32000
+const ERR_NODE_NOT_FOUND = -32001
+const ERR_PARENT_NOT_FOUND = -32002
+const ERR_SCRIPT_COMPILATION_FAILED = -32010
+const ERR_SCRIPT_NOT_FOUND = -32011
+const ERR_AUTOLOAD_NOT_FOUND = -32012
+
+func _find_game_node(path: String) -> Node:
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return null
+	return main_loop.root.get_node_or_null(NodePath(path))
+
+func get_tree(params: Dictionary) -> Dictionary:
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
+
+	var root = main_loop.root
+	var nodes = []
+	_collect_runtime_nodes(root, nodes, "")
+	return { "result": { "nodes": nodes, "scene_path": root.scene_file_path if root.scene_file_path else "" } }
+
+func _collect_runtime_nodes(node: Node, out: Array, path: String) -> void:
+	var node_path = path + "/" + node.name if path != "" else "/" + node.name
+	out.append({
+		"name": node.name,
+		"type": node.get_class(),
+		"path": node_path,
+	})
+	for child in node.get_children():
+		_collect_runtime_nodes(child, out, node_path)
+
+func get_node_properties(params: Dictionary) -> Dictionary:
+	var node_path = params.get("node_path", "")
+	var target = _find_game_node(node_path)
+	if target == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found: %s" % node_path } }
+
+	var props = {}
+	for prop in target.get_property_list():
+		if prop["usage"] & PROPERTY_USAGE_EDITOR:
+			var val = target.get(prop["name"])
+			props[prop["name"]] = Utils.value_to_string(val)
+
+	return { "result": {
+		"name": target.name,
+		"type": target.get_class(),
+		"path": node_path,
+		"properties": props,
+	} }
+
+func set_node_property(params: Dictionary) -> Dictionary:
+	var node_path = params.get("node_path", "")
+	var property = params.get("property", "")
+	var value_str = params.get("value", "")
+
+	var target = _find_game_node(node_path)
+	if target == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found: %s" % node_path } }
+
+	if not property in target:
+		return { "error": { "code": -32003, "message": "Property not found: %s" % property } }
+
+	var new_value = Utils.parse_value(value_str)
+	target.set(property, new_value)
+	return { "result": { "updated": true, "property": property, "value": Utils.value_to_string(new_value) } }
+
+func execute_script(params: Dictionary) -> Dictionary:
+	var code = params.get("code", "")
+	if code == "":
+		return { "error": { "code": -32004, "message": "Missing code parameter" } }
+
+	var script = GDScript.new()
+	script.source_code = code
+
+	var err = script.reload(false)
+	if err != OK:
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed" } }
+
+	var instance = script.new()
+	if instance.has_method("_ready"):
+		instance._ready()
+
+	return { "result": { "executed": true } }
+
+func find_nodes_by_script(params: Dictionary) -> Dictionary:
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
+
+	var script_path = params.get("script_path", "")
+	var script = load(script_path) as Script
+	if script == null:
+		return { "error": { "code": ERR_SCRIPT_NOT_FOUND, "message": "Script not found: %s" % script_path } }
+
+	var result = []
+	var root = main_loop.root
+	_find_nodes_with_script_recursive(root, script, result, "")
+
+	return { "result": { "nodes": result } }
+
+func _find_nodes_with_script_recursive(node: Node, target_script: Script, out: Array, path: String) -> void:
+	if node.get_script() == target_script:
+		var node_path = path + "/" + node.name if path != "" else "/" + node.name
+		out.append({
+			"name": node.name,
+			"type": node.get_class(),
+			"path": node_path,
+		})
+
+	for child in node.get_children():
+		var child_path = path + "/" + node.name if path != "" else "/" + node.name
+		_find_nodes_with_script_recursive(child, target_script, out, child_path)
+
+func get_autoload(params: Dictionary) -> Dictionary:
+	var name = params.get("name", "")
+	if name == "":
+		return { "error": { "code": -32005, "message": "Missing autoload name" } }
+
+	var path = "autoload/" + name
+	if not ProjectSettings.has_setting(path):
+		return { "error": { "code": ERR_AUTOLOAD_NOT_FOUND, "message": "Autoload not found: %s" % name } }
+
+	var autoload_path = ProjectSettings.get_setting(path)
+	return { "result": { "name": name, "path": autoload_path } }
+
+func batch_get_properties(params: Dictionary) -> Dictionary:
+	var node_paths = params.get("node_paths", [])
+	if node_paths.size() == 0:
+		return { "error": { "code": -32006, "message": "Missing node_paths parameter" } }
+
+	var results = []
+	for node_path in node_paths:
+		var target = _find_game_node(node_path)
+		if target == null:
+			results.append({ "path": node_path, "error": "Node not found" })
+		else:
+			var props = {}
+			for prop in target.get_property_list():
+				if prop["usage"] & PROPERTY_USAGE_EDITOR:
+					var val = target.get(prop["name"])
+					props[prop["name"]] = Utils.value_to_string(val)
+			results.append({ "path": node_path, "properties": props })
+
+	return { "result": { "nodes": results } }
+
+func find_ui_elements(params: Dictionary) -> Dictionary:
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
+
+	var search_text = params.get("text", "")
+	var control_type = params.get("type", "")
+	var result = []
+
+	var root = main_loop.root
+	_find_ui_elements_recursive(root, search_text, control_type, result, "")
+
+	return { "result": { "elements": result } }
+
+func _find_ui_elements_recursive(node: Node, search_text: String, control_type: String, out: Array, path: String) -> void:
+	if node is Control:
+		var matches = true
+		if control_type != "" and not node.get_class() == control_type:
+			matches = false
+		if search_text != "":
+			var label = node as Label
+			if label != null and label.text.find(search_text) == -1:
+				matches = false
+
+		if matches:
+			var node_path = path + "/" + node.name if path != "" else "/" + node.name
+			out.append({
+				"name": node.name,
+				"type": node.get_class(),
+				"path": node_path,
+				"text": node.get("text") if "text" in node else "",
+			})
+
+	for child in node.get_children():
+		var child_path = path + "/" + node.name if path != "" else "/" + node.name
+		_find_ui_elements_recursive(child, search_text, control_type, out, child_path)
+
+func click_button_by_text(params: Dictionary) -> Dictionary:
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
+
+	var button_text = params.get("text", "")
+	if button_text == "":
+		return { "error": { "code": -32007, "message": "Missing text parameter" } }
+
+	var root = main_loop.root
+	var button = _find_button_by_text_recursive(root, button_text)
+	if button == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Button not found: %s" % button_text } }
+
+	button.pressed()
+	return { "result": { "clicked": true, "button_path": button.get_path() } }
+
+func _find_button_by_text_recursive(node: Node, text: String) -> Button:
+	if node is Button:
+		var label = node.get_node_or_null("Label")
+		if label != null and label.text == text:
+			return button as Button
+		if node.text == text:
+			return node as Button
+
+	for child in node.get_children():
+		var found = _find_button_by_text_recursive(child, text)
+		if found != null:
+			return found
+	return null
+
+func wait_for_node(params: Dictionary) -> Dictionary:
+	var node_path = params.get("node_path", "")
+	var timeout_ms = params.get("timeout_ms", 5000)
+
+	var start_time = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start_time < timeout_ms:
+		var node = _find_game_node(node_path)
+		if node != null:
+			return { "result": { "found": true, "node_path": node_path } }
+		await MainLoop.task_wait_frame()
+
+	return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found within timeout: %s" % node_path } }
+
+func find_nearby_nodes(params: Dictionary) -> Dictionary:
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
+
+	var origin_path = params.get("origin_path", "")
+	var max_distance = params.get("max_distance", 100.0)
+
+	var origin = _find_game_node(origin_path)
+	if origin == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Origin node not found: %s" % origin_path } }
+
+	var origin_pos = origin.global_position
+	var result = []
+	_find_nodes_by_distance_recursive(main_loop.root, origin_pos, max_distance, result, "", origin)
+
+	return { "result": { "nodes": result } }
+
+func _find_nodes_by_distance_recursive(node: Node, origin: Vector3, max_dist: float, out: Array, path: String, origin_node: Node) -> void:
+	if node == origin_node:
+		return
+
+	var dist = node.global_position.distance_to(origin)
+	if dist <= max_dist:
+		var node_path = path + "/" + node.name if path != "" else "/" + node.name
+		out.append({
+			"name": node.name,
+			"type": node.get_class(),
+			"path": node_path,
+			"distance": dist,
+		})
+
+	for child in node.get_children():
+		var child_path = path + "/" + node.name if path != "" else "/" + node.name
+		_find_nodes_by_distance_recursive(child, origin, max_dist, out, child_path, origin_node)
+
+func navigate_to(params: Dictionary) -> Dictionary:
+	var agent_path = params.get("agent_path", "")
+	var target_pos_str = params.get("target_position", "")
+
+	var agent = _find_game_node(agent_path)
+	if agent == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Navigation agent not found: %s" % agent_path } }
+
+	if not agent has("target_position"):
+		return { "error": { "code": -32008, "message": "Node is not a NavigationAgent" } }
+
+	var parts = target_pos_str.strip_edges().split(",")
+	if parts.size() != 3:
+		return { "error": { "code": -32009, "message": "Invalid target_position format, expected 'x,y,z'" } }
+
+	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
+	agent.target_position = target
+	agent.navigate_to_target()
+	return { "result": { "navigating": true, "target": target_pos_str } }
+
+func move_to(params: Dictionary) -> Dictionary:
+	var agent_path = params.get("agent_path", "")
+	var target_pos_str = params.get("target_position", "")
+
+	var agent = _find_game_node(agent_path)
+	if agent == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Navigation agent not found: %s" % agent_path } }
+
+	if not agent has("target_position"):
+		return { "error": { "code": -32008, "message": "Node is not a NavigationAgent" } }
+
+	var parts = target_pos_str.strip_edges().split(",")
+	if parts.size() != 3:
+		return { "error": { "code": -32009, "message": "Invalid target_position format, expected 'x,y,z'" } }
+
+	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
+	agent.target_position = target
+	return { "result": { "moving": true, "target": target_pos_str } }
+
+func get_game_node_property(params: Dictionary) -> Dictionary:
+	var node_path = params.get("node_path", "")
+	var property = params.get("property", "")
+
+	var target = _find_game_node(node_path)
+	if target == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found: %s" % node_path } }
+
+	if not property in target:
+		return { "error": { "code": -32003, "message": "Property not found: %s" % property } }
+
+	var val = target.get(property)
+	return { "result": { "property": property, "value": Utils.value_to_string(val) } }
+
+func capture_frames(params: Dictionary) -> Dictionary:
+	var count = params.get("count", 1)
+	if count < 1 or count > 100:
+		return { "error": { "code": -32013, "message": "Frame count must be between 1 and 100" } }
+
+	var viewport = Engine.get_main_loop().root.get_viewport()
+	var images = []
+	for i in range(count):
+		await MainLoop.task_wait_frame()
+		var img = viewport.get_texture().get_image()
+		images.append(img.get_data())
+
+	return { "result": { "captured": count, "frames": images } }
+
+func monitor_properties(params: Dictionary) -> Dictionary:
+	var node_path = params.get("node_path", "")
+	var properties = params.get("properties", [])
+
+	var target = _find_game_node(node_path)
+	if target == null:
+		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found: %s" % node_path } }
+
+	var values = {}
+	for prop in properties:
+		if prop in target:
+			values[prop] = Utils.value_to_string(target.get(prop))
+		else:
+			values[prop] = null
+
+	return { "result": { "node_path": node_path, "values": values } }
+
+var _recording_data = []
+var _is_recording = false
+
+func start_recording(params: Dictionary) -> Dictionary:
+	_recording_data = []
+	_is_recording = true
+	return { "result": { "recording": true } }
+
+func stop_recording(params: Dictionary) -> Dictionary:
+	_is_recording = false
+	var frame_count = _recording_data.size()
+	_recording_data = []
+	return { "result": { "stopped": true, "frames_recorded": frame_count } }
+
+func replay_recording(params: Dictionary) -> Dictionary:
+	var data = params.get("data", [])
+	if data.size() == 0:
+		return { "error": { "code": -32014, "message": "No recording data provided" } }
+
+	for frame_data in data:
+		await MainLoop.task_wait_frame()
+
+	return { "result": { "replayed": true, "frame_count": data.size() } }
