@@ -17,7 +17,7 @@
 
 A fully open-source MCP implementation for Godot 4.6.2+. Connect AI assistants to your Godot projects.
 
-**Features:** 141 tools · Dual-mode (offline/online) · Full/Lite/Minimal modes · UndoRedo support
+**Features:** 165 tools · Dual-mode (offline/online) · Full/Lite/Minimal modes · UndoRedo support
 
 ```bash
 # Install
@@ -37,7 +37,7 @@ npx godot-mcp
 
 开源的 Godot 4.6.2+ MCP 实现。连接 AI 助手到你的 Godot 项目。
 
-**功能：** 141 个工具 · 双模式（离线/在线）· 三种运行模式 · UndoRedo 支持
+**功能：** 165 个工具 · 双模式（离线/在线）· 三种运行模式 · UndoRedo 支持
 
 ```bash
 # 安装

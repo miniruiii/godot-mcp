@@ -5,7 +5,7 @@ A fully open-source Model Context Protocol (MCP) implementation for Godot 4.6.2+
 ## Features
 
 - **Dual-mode operation**: Works offline (file system) or online (live Godot editor via WebSocket)
-- **141 built-in tools**: Project exploration, scene editing, script management, node manipulation, runtime introspection, input simulation, and project execution
+- **165 built-in tools**: Project exploration, scene editing, script management, node manipulation, runtime introspection, input simulation, and project execution
 - **Three run modes**: Full, Lite, Minimal — adapt to your AI client's context limits
 - **Secure**: Path restrictions prevent directory traversal; WebSocket bound to localhost only
 - **UndoRedo support**: All editor modifications go through Godot's undo system

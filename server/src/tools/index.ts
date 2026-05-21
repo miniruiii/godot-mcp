@@ -77,6 +77,23 @@ import {
 import {
   setBlendTreeNode
 } from './blend_tree.js';
+import {
+  findNodesByType, findSignalConnections, batchSetProperty,
+  findNodeReferences, getSceneDependencies, crossSceneSetProperty,
+  findScriptReferences, detectCircularDependencies
+} from './batch.js';
+import {
+  analyzeSceneComplexity, analyzeSignalFlow,
+  findUnusedResources, getProjectStatistics
+} from './analysis.js';
+import {
+  runTestScenario, assertNodeState, assertScreenText,
+  compareScreenshots, runStressTest, getTestReport
+} from './testing.js';
+import {
+  getFilesystemTree, searchFiles, getProjectSettings,
+  setProjectSetting, uidToProjectPath, projectPathToUid
+} from './utility.js';
 
 export interface ToolDefinition {
   name: string;
@@ -1452,6 +1469,245 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['node_path', 'node_name', 'node_type'],
       },
       handler: (args) => setBlendTreeNode(args as any, bridge),
+    },
+    // Batch tools (8)
+    {
+      name: 'find_nodes_by_type',
+      description: 'Find all nodes of a specific type in scene',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_type: { type: 'string' }, include_subtypes: { type: 'boolean' } },
+        required: ['scene_path', 'node_type'],
+      },
+      handler: (args) => findNodesByType(args as any, bridge),
+    },
+    {
+      name: 'find_signal_connections',
+      description: 'Find all signal connections for a node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, signal_name: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => findSignalConnections(args as any, bridge),
+    },
+    {
+      name: 'batch_set_property',
+      description: 'Set property on multiple nodes at once',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_paths: { type: 'array' }, property: { type: 'string' }, value: { type: 'any' } },
+        required: ['scene_path', 'node_paths', 'property', 'value'],
+      },
+      handler: (args) => batchSetProperty(args as any, bridge),
+    },
+    {
+      name: 'find_node_references',
+      description: 'Find all references to a node',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
+        required: ['scene_path', 'node_path'],
+      },
+      handler: (args) => findNodeReferences(args as any, bridge),
+    },
+    {
+      name: 'get_scene_dependencies',
+      description: 'Get dependencies of a scene',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' } },
+        required: ['scene_path'],
+      },
+      handler: (args) => getSceneDependencies(args as any, bridge),
+    },
+    {
+      name: 'cross_scene_set_property',
+      description: 'Set property across multiple scenes',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_paths: { type: 'array' }, property: { type: 'string' }, value: { type: 'any' } },
+        required: ['scene_paths', 'property', 'value'],
+      },
+      handler: (args) => crossSceneSetProperty(args as any, bridge),
+    },
+    {
+      name: 'find_script_references',
+      description: 'Find all references to a script',
+      inputSchema: {
+        type: 'object',
+        properties: { script_path: { type: 'string' } },
+        required: ['script_path'],
+      },
+      handler: (args) => findScriptReferences(args as any, bridge),
+    },
+    {
+      name: 'detect_circular_dependencies',
+      description: 'Detect circular dependencies in resources',
+      inputSchema: {
+        type: 'object',
+        properties: { start_path: { type: 'string' } },
+        required: ['start_path'],
+      },
+      handler: (args) => detectCircularDependencies(args as any, bridge),
+    },
+    // Analysis tools (4)
+    {
+      name: 'analyze_scene_complexity',
+      description: 'Analyze scene complexity metrics',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' } },
+        required: ['scene_path'],
+      },
+      handler: (args) => analyzeSceneComplexity(args as any, bridge),
+    },
+    {
+      name: 'analyze_signal_flow',
+      description: 'Analyze signal connection flow',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' } },
+        required: ['scene_path'],
+      },
+      handler: (args) => analyzeSignalFlow(args as any, bridge),
+    },
+    {
+      name: 'find_unused_resources',
+      description: 'Find resources not referenced by any scene',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args) => findUnusedResources(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'get_project_statistics',
+      description: 'Get project-wide statistics',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args) => getProjectStatistics(args as Record<string, unknown>, bridge),
+    },
+    // Testing tools (6)
+    {
+      name: 'run_test_scenario',
+      description: 'Run a test scenario',
+      inputSchema: {
+        type: 'object',
+        properties: { scenario_name: { type: 'string' }, test_path: { type: 'string' } },
+        required: ['scenario_name'],
+      },
+      handler: (args) => runTestScenario(args as any, bridge),
+    },
+    {
+      name: 'assert_node_state',
+      description: 'Assert a node is in expected state',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, expected: { type: 'object' }, tolerance: { type: 'number' } },
+        required: ['node_path', 'expected'],
+      },
+      handler: (args) => assertNodeState(args as any, bridge),
+    },
+    {
+      name: 'assert_screen_text',
+      description: 'Assert text appears on screen',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string' }, case_sensitive: { type: 'boolean' }, timeout_ms: { type: 'number' } },
+        required: ['text'],
+      },
+      handler: (args) => assertScreenText(args as any, bridge),
+    },
+    {
+      name: 'compare_screenshots',
+      description: 'Compare two screenshots for differences',
+      inputSchema: {
+        type: 'object',
+        properties: { baseline_path: { type: 'string' }, current_path: { type: 'string' }, tolerance: { type: 'number' } },
+        required: ['baseline_path', 'current_path'],
+      },
+      handler: (args) => compareScreenshots(args as any, bridge),
+    },
+    {
+      name: 'run_stress_test',
+      description: 'Run stress test',
+      inputSchema: {
+        type: 'object',
+        properties: { test_type: { type: 'string' }, duration_ms: { type: 'number' } },
+        required: ['test_type'],
+      },
+      handler: (args) => runStressTest(args as any, bridge),
+    },
+    {
+      name: 'get_test_report',
+      description: 'Get test execution report',
+      inputSchema: {
+        type: 'object',
+        properties: { report_type: { type: 'string' } },
+      },
+      handler: (args) => getTestReport(args as any, bridge),
+    },
+    // Utility tools (6)
+    {
+      name: 'get_filesystem_tree',
+      description: 'Get project filesystem tree',
+      inputSchema: {
+        type: 'object',
+        properties: { max_depth: { type: 'number' } },
+      },
+      handler: (args) => getFilesystemTree(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'search_files',
+      description: 'Search for text in project files',
+      inputSchema: {
+        type: 'object',
+        properties: { text: { type: 'string' }, extensions: { type: 'array' }, case_sensitive: { type: 'boolean' } },
+        required: ['text'],
+      },
+      handler: (args) => searchFiles(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'get_project_settings',
+      description: 'Get project.godot settings',
+      inputSchema: {
+        type: 'object',
+        properties: { category: { type: 'string' } },
+      },
+      handler: (args) => getProjectSettings(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'set_project_setting',
+      description: 'Set a value in project.godot',
+      inputSchema: {
+        type: 'object',
+        properties: { key: { type: 'string' }, value: { type: 'any' }, value_type: { type: 'string' } },
+        required: ['key', 'value'],
+      },
+      handler: (args) => setProjectSetting(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'uid_to_project_path',
+      description: 'Convert UID to project path',
+      inputSchema: {
+        type: 'object',
+        properties: { uid: { type: 'string' } },
+        required: ['uid'],
+      },
+      handler: (args) => uidToProjectPath(args as any, bridge, projectRoot),
+    },
+    {
+      name: 'project_path_to_uid',
+      description: 'Convert project path to UID',
+      inputSchema: {
+        type: 'object',
+        properties: { path: { type: 'string' } },
+        required: ['path'],
+      },
+      handler: (args) => projectPathToUid(args as any, bridge, projectRoot),
     },
   ];
 }

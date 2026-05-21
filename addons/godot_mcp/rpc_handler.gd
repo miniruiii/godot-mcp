@@ -20,6 +20,11 @@ const ProfilingCommandsClass = preload("res://addons/godot_mcp/editors/profiling
 const AnimationTreeCommandsClass = preload("res://addons/godot_mcp/editors/animation_tree_commands.gd")
 const StateMachineCommandsClass = preload("res://addons/godot_mcp/editors/state_machine_commands.gd")
 const BlendTreeCommandsClass = preload("res://addons/godot_mcp/editors/blend_tree_commands.gd")
+const BlendTreeCommandsClass = preload("res://addons/godot_mcp/editors/blend_tree_commands.gd")
+const BatchCommandsClass = preload("res://addons/godot_mcp/editors/batch_commands.gd")
+const TestingCommandsClass = preload("res://addons/godot_mcp/editors/testing_commands.gd")
+const UtilityCommandsClass = preload("res://addons/godot_mcp/editors/utility_commands.gd")
+const AnalysisCommandsClass = preload("res://addons/godot_mcp/editors/analysis_commands.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 var scene_editor_inst: SceneEditorClass
@@ -42,6 +47,10 @@ var profiling_commands: ProfilingCommandsClass
 var animation_tree_commands: AnimationTreeCommandsClass
 var state_machine_commands: StateMachineCommandsClass
 var blend_tree_commands: BlendTreeCommandsClass
+var analysis_commands: AnalysisCommandsClass
+var batch_commands: BatchCommandsClass
+var testing_commands: TestingCommandsClass
+var utility_commands: UtilityCommandsClass
 
 func _init():
     scene_editor_inst = SceneEditorClass.new()
@@ -64,6 +73,10 @@ func _init():
     animation_tree_commands = AnimationTreeCommandsClass.new()
     state_machine_commands = StateMachineCommandsClass.new()
     blend_tree_commands = BlendTreeCommandsClass.new()
+    analysis_commands = AnalysisCommandsClass.new()
+    batch_commands = BatchCommandsClass.new()
+    testing_commands = TestingCommandsClass.new()
+    utility_commands = UtilityCommandsClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -381,6 +394,58 @@ func _route(method: String, params: Dictionary) -> Dictionary:
         # blendtree.* routes for blend tree commands (1 tool)
         "blendtree.set_node":
             return blend_tree_commands.set_blend_tree_node(params)
+        # analysis.* routes for analysis commands (4 tools)
+        "analysis.complexity":
+            return analysis_commands.analyze_scene_complexity(params)
+        "analysis.signal_flow":
+            return analysis_commands.analyze_signal_flow(params)
+        "analysis.unused_resources":
+            return analysis_commands.find_unused_resources(params)
+        "analysis.project_statistics":
+            return analysis_commands.get_project_statistics(params)
+        # batch.* routes for batch commands (8 tools)
+        "batch.find_by_type":
+            return batch_commands.find_nodes_by_type(params)
+        "batch.find_connections":
+            return batch_commands.find_signal_connections(params)
+        "batch.set_property":
+            return batch_commands.batch_set_property(params)
+        "batch.find_references":
+            return batch_commands.find_node_references(params)
+        "batch.get_dependencies":
+            return batch_commands.get_scene_dependencies(params)
+        "batch.cross_scene_set":
+            return batch_commands.cross_scene_set_property(params)
+        "batch.find_script_refs":
+            return batch_commands.find_script_references(params)
+        "batch.detect_circular":
+            return batch_commands.detect_circular_dependencies(params)
+        # testing.* routes for testing commands (6 tools)
+        "testing.run_scenario":
+            return testing_commands.run_test_scenario(params)
+        "testing.assert_state":
+            return testing_commands.assert_node_state(params)
+        "testing.assert_text":
+            return testing_commands.assert_screen_text(params)
+        "testing.compare_screenshots":
+            return testing_commands.compare_screenshots(params)
+        "testing.run_stress":
+            return testing_commands.run_stress_test(params)
+        "testing.get_report":
+            return testing_commands.get_test_report(params)
+        # utility.* routes for utility commands (6 tools)
+        "utility.filesystem_tree":
+            return utility_commands.get_filesystem_tree(params)
+        "utility.search_files":
+            return utility_commands.search_files(params)
+        "utility.get_settings":
+            return utility_commands.get_project_settings(params)
+        "utility.set_setting":
+            return utility_commands.set_project_setting(params)
+        "utility.uid_to_path":
+            return utility_commands.uid_to_project_path(params)
+        "utility.path_to_uid":
+            return utility_commands.project_path_to_uid(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 
