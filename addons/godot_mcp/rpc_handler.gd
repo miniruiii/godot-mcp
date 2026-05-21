@@ -58,6 +58,26 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return scene_editor_inst.save_scene(params)
         "scene.open":
             return scene_editor_inst.open_scene(params)
+        "scene.get_file_content":
+            return scene_editor_inst.get_scene_file_content(params)
+        "scene.delete":
+            return scene_editor_inst.delete_scene(params)
+        "scene.add_instance":
+            return scene_editor_inst.add_scene_instance(params)
+        "scene.play":
+            return scene_editor_inst.play_scene(params)
+        "scene.stop":
+            return scene_editor_inst.stop_scene(params)
+        "scene.get_signals":
+            return scene_editor_inst.get_signals(params)
+        "script.list":
+            return script_editor_inst.list_scripts(params)
+        "script.attach":
+            return script_editor_inst.attach_script(params)
+        "script.validate":
+            return script_editor_inst.validate_script(params)
+        "script.search":
+            return script_editor_inst.search_in_files(params)
         "script.open":
             return script_editor_inst.open_script(params)
         "script.get_content":
@@ -72,6 +92,20 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return project_editor_inst.get_settings()
         "project.get_info":
             return { "result": Utils.get_engine_info() }
+        "editor.get_errors":
+            return project_editor_inst.get_editor_errors(params)
+        "editor.get_screenshot":
+            return project_editor_inst.get_editor_screenshot(params)
+        "editor.get_game_screenshot":
+            return project_editor_inst.get_game_screenshot(params)
+        "editor.execute_script":
+            return project_editor_inst.execute_editor_script(params)
+        "editor.clear_output":
+            return project_editor_inst.clear_output(params)
+        "editor.reload_plugin":
+            return project_editor_inst.reload_plugin(params)
+        "editor.reload_project":
+            return project_editor_inst.reload_project(params)
         "handshake":
             return { "result": { "version": Utils.PLUGIN_VERSION, "godot_version": Engine.get_version_info()["string"] } }
         # game.* routes for runtime commands (19 tools)
