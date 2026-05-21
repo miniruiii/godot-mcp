@@ -1,18 +1,18 @@
 extends RefCounted
 
-const SceneEditor = preload("res://addons/godot_mcp/editors/scene_editor.gd")
-const ScriptEditor = preload("res://addons/godot_mcp/editors/script_editor.gd")
-const ProjectEditor = preload("res://addons/godot_mcp/editors/project_editor.gd")
+const SceneEditorClass = preload("res://addons/godot_mcp/editors/scene_editor.gd")
+const ScriptEditorClass = preload("res://addons/godot_mcp/editors/script_editor.gd")
+const ProjectEditorClass = preload("res://addons/godot_mcp/editors/project_editor.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
-var scene_editor: SceneEditor
-var script_editor: ScriptEditor
-var project_editor: ProjectEditor
+var scene_editor: SceneEditorClass
+var script_editor: ScriptEditorClass
+var project_editor: ProjectEditorClass
 
 func _init():
-    scene_editor = SceneEditor.new()
-    script_editor = ScriptEditor.new()
-    project_editor = ProjectEditor.new()
+    scene_editor = SceneEditorClass.new()
+    script_editor = ScriptEditorClass.new()
+    project_editor = ProjectEditorClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
