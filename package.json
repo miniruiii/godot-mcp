@@ -4,18 +4,31 @@
   "description": "Model Context Protocol server for Godot 4.6.2+",
   "type": "module",
   "main": "dist/server.js",
+  "types": "dist/server.d.ts",
   "bin": {
     "godot-mcp": "dist/server.js"
   },
+  "files": [
+    "dist/",
+    "addons/",
+    "settings.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": ["godot", "mcp", "model-context-protocol"],
+  "keywords": ["godot", "mcp", "model-context-protocol", "game-development"],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miniruiii/godot-mcp-rc.git"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "ws": "^8.18.0",
