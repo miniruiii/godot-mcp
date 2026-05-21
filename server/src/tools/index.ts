@@ -20,6 +20,10 @@ import {
   duplicateNode, moveNode, connectSignal, disconnectSignal,
   getNodeGroups, setNodeGroups, findNodesInGroup, renameNode
 } from './node.js';
+import {
+  listAnimations, createAnimation, addAnimationTrack, setAnimationKeyframe,
+  getAnimationInfo, removeAnimation
+} from './animation.js';
 
 export interface ToolDefinition {
   name: string;
@@ -665,6 +669,67 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['scene_path', 'node_path', 'new_name'],
       },
       handler: (args) => renameNode(args as any, projectRoot, bridge),
+    },
+    // Animation tools (6)
+    {
+      name: 'list_animations',
+      description: 'List all animations on a node with an AnimationPlayer',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => listAnimations(args as { node_path: string }, bridge),
+    },
+    {
+      name: 'create_animation',
+      description: 'Create a new animation on an AnimationPlayer node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, name: { type: 'string' } },
+        required: ['node_path', 'name'],
+      },
+      handler: (args) => createAnimation(args as { node_path: string; name: string }, bridge),
+    },
+    {
+      name: 'add_animation_track',
+      description: 'Add a track to an animation on an AnimationPlayer node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, animation: { type: 'string' }, track_path: { type: 'string' } },
+        required: ['node_path', 'animation', 'track_path'],
+      },
+      handler: (args) => addAnimationTrack(args as { node_path: string; animation: string; track_path: string }, bridge),
+    },
+    {
+      name: 'set_animation_keyframe',
+      description: 'Set a keyframe value at a specific time in an animation track',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, animation: { type: 'string' }, track_index: { type: 'number' }, time: { type: 'number' }, value: { type: 'string' } },
+        required: ['node_path', 'animation', 'track_index', 'time', 'value'],
+      },
+      handler: (args) => setAnimationKeyframe(args as { node_path: string; animation: string; track_index: number; time: number; value: string }, bridge),
+    },
+    {
+      name: 'get_animation_info',
+      description: 'Get detailed information about an animation',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, animation: { type: 'string' } },
+        required: ['node_path', 'animation'],
+      },
+      handler: (args) => getAnimationInfo(args as { node_path: string; animation: string }, bridge),
+    },
+    {
+      name: 'remove_animation',
+      description: 'Remove an animation from an AnimationPlayer node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, animation: { type: 'string' } },
+        required: ['node_path', 'animation'],
+      },
+      handler: (args) => removeAnimation(args as { node_path: string; animation: string }, bridge),
     },
   ];
 }
