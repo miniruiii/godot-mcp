@@ -111,7 +111,7 @@ export function computeNodePaths(nodes: SceneNode[]): string[] {
       path = `/root/${node.name}`;
       rootPath = path;
     } else if (node.parent === '.') {
-      path = `${rootPath}/${node.name}`;
+      path = rootPath ? `${rootPath}/${node.name}` : `/root/${node.name}`;
     } else {
       const parentPath = pathMap.get(node.parent);
       path = parentPath ? `${parentPath}/${node.name}` : `/root/${node.parent}/${node.name}`;
@@ -124,7 +124,12 @@ export function computeNodePaths(nodes: SceneNode[]): string[] {
 }
 
 export function readGodotFile(filePath: string): GodotFile {
-  const content = readFileSync(filePath, 'utf-8');
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch (err) {
+    throw new Error(`Failed to read file ${filePath}: ${err instanceof Error ? err.message : err}`);
+  }
   const ext = filePath.split('.').pop()?.toLowerCase();
   let language: string | undefined;
 
