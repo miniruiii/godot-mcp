@@ -270,3 +270,125 @@ func rename_node(params: Dictionary) -> Dictionary:
     undo.commit_action()
 
     return { "result": { "renamed": true, "new_name": new_name } }
+
+func get_scene_file_content(params: Dictionary) -> Dictionary:
+    var scene_path = params.get("scene_path", "")
+    if scene_path == "":
+        return { "error": { "code": -32600, "message": "Missing scene_path" } }
+
+    if not FileAccess.file_exists(scene_path):
+        return { "error": { "code": -32602, "message": "Scene file not found: %s" % scene_path } }
+
+    var file = FileAccess.open(scene_path, FileAccess.READ)
+    if file == null:
+        return { "error": { "code": -32603, "message": "Failed to open scene file: %s" % scene_path } }
+
+    var content = file.get_as_text()
+    file.close()
+
+    return { "result": { "scene_path": scene_path, "content": content } }
+
+func delete_scene(params: Dictionary) -> Dictionary:
+    var scene_path = params.get("scene_path", "")
+    if scene_path == "":
+        return { "error": { "code": -32600, "message": "Missing scene_path" } }
+
+    if not FileAccess.file_exists(scene_path):
+        return { "error": { "code": -32602, "message": "Scene file not found: %s" % scene_path } }
+
+    var dir = DirAccess.open(scene_path.get_base_dir())
+    if dir == null:
+        return { "error": { "code": -32603, "message": "Failed to access directory" } }
+
+    var err = dir.remove(scene_path)
+    if err != OK:
+        return { "error": { "code": -32603, "message": "Failed to delete scene: %s" % scene_path } }
+
+    return { "result": { "deleted": true, "scene_path": scene_path } }
+
+func add_scene_instance(params: Dictionary) -> Dictionary:
+    var scene_path = params.get("scene_path", "")
+    var parent_path = params.get("parent_path", "")
+    var instance_name = params.get("name", "")
+
+    if scene_path == "":
+        return { "error": { "code": -32600, "message": "Missing scene_path" } }
+
+    if parent_path == "":
+        return { "error": { "code": -32600, "message": "Missing parent_path" } }
+
+    if not FileAccess.file_exists(scene_path):
+        return { "error": { "code": -32602, "message": "Scene file not found: %s" % scene_path } }
+
+    var parent = _find_node_by_path(parent_path)
+    if parent == null:
+        return { "error": { "code": -32602, "message": "Parent node not found: %s" % parent_path } }
+
+    var scene = load(scene_path)
+    if scene == null:
+        return { "error": { "code": -32603, "message": "Failed to load scene: %s" % scene_path } }
+
+    var instance = scene.instantiate()
+    if instance == null:
+        return { "error": { "code": -32603, "message": "Failed to instantiate scene: %s" % scene_path } }
+
+    if instance_name != "":
+        instance.name = instance_name
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Add Scene Instance via MCP")
+    undo.add_do_method(parent, "add_child", instance, true)
+    undo.add_undo_method(parent, "remove_child", instance)
+    undo.commit_action()
+
+    var edited_root = EditorInterface.get_edited_scene_root()
+    if edited_root:
+        instance.set_owner(edited_root)
+
+    return { "result": { "added": true, "instance_path": parent_path + "/" + instance.name } }
+
+func play_scene(params: Dictionary) -> Dictionary:
+    var scene_path = params.get("scene_path", "")
+
+    var tree = Engine.get_main_loop()
+    if scene_path != "":
+        if not FileAccess.file_exists(scene_path):
+            return { "error": { "code": -32602, "message": "Scene file not found: %s" % scene_path } }
+        tree.change_scene_to_file(scene_path)
+    else:
+        tree.unpause()
+
+    return { "result": { "playing": true, "scene_path": scene_path } }
+
+func stop_scene(params: Dictionary) -> Dictionary:
+    var tree = Engine.get_main_loop()
+    tree.pause()
+
+    return { "result": { "stopped": true } }
+
+func get_signals(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    var signals = []
+    var signal_list = target.get_signal_list()
+    for sig in signal_list:
+        var connections = []
+        var connection_list = target.get_signal_connection_list(sig["name"])
+        for conn in connection_list:
+            connections.append({
+                "target_path": conn["target"].get_path().to_string(),
+                "method": conn["method"],
+                "flags": conn["flags"],
+                "binds": conn["binds"],
+            })
+        signals.append({
+            "name": sig["name"],
+            "arguments": sig["args"],
+            "connections": connections,
+        })
+
+    return { "result": { "node_path": node_path, "signals": signals } }
