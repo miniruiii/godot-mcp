@@ -155,13 +155,11 @@ func duplicate_node(params: Dictionary) -> Dictionary:
     undo.create_action("Duplicate Node via MCP")
     undo.add_do_method(parent, "add_child", duplicated, true)
     undo.add_undo_method(parent, "remove_child", duplicated)
+    undo.add_do_method(duplicated, "set_owner", edited_root)
+    undo.add_undo_method(duplicated, "set_owner", target)
     undo.commit_action()
 
-    var edited_root = EditorInterface.get_edited_scene_root()
-    if edited_root:
-        duplicated.set_owner(edited_root)
-
-    return { "result": { "duplicated": true, "new_path": parent.get_path().absent_parent().join(duplicated.name).simplify_absolute().simplify() if parent.get_path() != NodePath("/") else "/" + duplicated.name } }
+    return { "result": { "duplicated": true, "new_path": parent.get_path().to_string() + "/" + duplicated.name } }
 
 func move_node(params: Dictionary) -> Dictionary:
     var node_path = params.get("node_path", "")
@@ -174,6 +172,13 @@ func move_node(params: Dictionary) -> Dictionary:
     var new_parent = _find_node_by_path(new_parent_path)
     if new_parent == null:
         return { "error": { "code": -32602, "message": "New parent not found: %s" % new_parent_path } }
+
+    # Prevent moving a node to become its own descendant
+    var check_node = new_parent
+    while check_node != null:
+        if check_node == target:
+            return { "error": { "code": -32602, "message": "Cannot move node to become its own descendant" } }
+        check_node = check_node.get_parent()
 
     var old_parent = target.get_parent()
 
@@ -206,9 +211,12 @@ func connect_signal(params: Dictionary) -> Dictionary:
         return { "error": { "code": -32600, "message": "Missing method name" } }
 
     var callable = Callable(target, method)
-    var err = source.connect(signal, callable)
-    if err != OK:
-        return { "error": { "code": -32602, "message": "Failed to connect signal '%s': %s" % [signal, str(err)] } }
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Connect Signal via MCP")
+    undo.add_do_method(source, "connect", signal, callable)
+    undo.add_undo_method(source, "disconnect", signal, callable)
+    undo.commit_action()
 
     return { "result": { "connected": true } }
 
@@ -233,9 +241,12 @@ func disconnect_signal(params: Dictionary) -> Dictionary:
         return { "error": { "code": -32600, "message": "Missing method name" } }
 
     var callable = Callable(target, method)
-    var err = source.disconnect(signal, callable)
-    if err != OK:
-        return { "error": { "code": -32602, "message": "Failed to disconnect signal '%s': %s" % [signal, str(err)] } }
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Disconnect Signal via MCP")
+    undo.add_do_method(source, "disconnect", signal, callable)
+    undo.add_undo_method(source, "connect", signal, callable)
+    undo.commit_action()
 
     return { "result": { "disconnected": true } }
 
