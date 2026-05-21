@@ -145,7 +145,7 @@ export function attachScript(args: AttachScriptArgs, bridge: GodotBridge): Attac
   if (!bridge.isConnected) {
     return { offline: true, message: 'attachScript requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
-  return bridge.call('script.attach', args) as AttachScriptResult;
+  return bridge.call('script.attach', args as unknown as Record<string, unknown>) as AttachScriptResult;
 }
 
 // Tool 7: validateScript
@@ -165,7 +165,7 @@ export function validateScript(args: ValidateScriptArgs, bridge: GodotBridge): V
   if (!bridge.isConnected) {
     return { offline: true, message: 'validateScript requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
-  return bridge.call('script.validate', args) as ValidateScriptResult;
+  return bridge.call('script.validate', args as unknown as Record<string, unknown>) as ValidateScriptResult;
 }
 
 // Tool 8: searchInFiles
@@ -185,5 +185,5 @@ export function searchInFiles(args: SearchInFilesArgs, bridge: GodotBridge): Sea
   if (!bridge.isConnected) {
     return { offline: true, message: 'searchInFiles requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
-  return bridge.call('script.search', args) as SearchInFilesResult;
+  return bridge.call('script.search', args as unknown as Record<string, unknown>) as SearchInFilesResult;
 }

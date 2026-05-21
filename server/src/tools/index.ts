@@ -150,6 +150,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       handler: (args) => getSignals(args as { node_path: string }, projectRoot, bridge),
     },
     // Node tools (continued)
+    {
       name: 'get_scene_tree',
       description: 'Get the full node tree of a scene',
       inputSchema: {

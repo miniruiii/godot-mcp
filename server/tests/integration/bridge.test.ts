@@ -44,7 +44,7 @@ describe('MCP bridge integration', () => {
   it('has 53 tools registered', () => {
     const config = loadConfig('nonexistent.json');
     const tools = buildToolRegistry(config, bridge);
-    expect(tools.length).toBe(52);
+    expect(tools.length).toBe(69);
   });
 
   it('save_scene succeeds when bridge is connected', async () => {

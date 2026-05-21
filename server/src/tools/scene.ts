@@ -241,11 +241,10 @@ export interface GetSignalsResult {
   node_path: string;
 }
 
-export function getSignals(args: GetSignalsArgs, projectRoot: string, bridge: GodotBridge): GetSignalsResult {
+export async function getSignals(args: GetSignalsArgs, projectRoot: string, bridge: GodotBridge): Promise<GetSignalsResult> {
   if (!bridge.isConnected) {
     return { signals: [], node_path: args.node_path };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = bridge.call('scene.get_signals', { node_path: args.node_path } as any);
-  return { signals: result as string[] || [], node_path: args.node_path };
+  const result = await bridge.call('scene.get_signals', { node_path: args.node_path }) as { signals?: string[] };
+  return { signals: result?.signals || [], node_path: args.node_path };
 }
