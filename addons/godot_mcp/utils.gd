@@ -57,6 +57,7 @@ static func parse_value(value_str: String) -> Variant:
     if value_str.is_valid_float():
         return float(value_str)
     if value_str.begins_with("\"") and value_str.ends_with("\""):
+        # Store length in local var to avoid resolution as Callable in GDScript
         var len = value_str.length()
         return value_str.substr(1, len - 2)
     return value_str

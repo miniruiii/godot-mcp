@@ -5,14 +5,14 @@ const ScriptEditorClass = preload("res://addons/godot_mcp/editors/script_editor.
 const ProjectEditorClass = preload("res://addons/godot_mcp/editors/project_editor.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
-var scene_editor: SceneEditorClass
-var script_editor: ScriptEditorClass
-var project_editor: ProjectEditorClass
+var scene_editor_inst: SceneEditorClass
+var script_editor_inst: ScriptEditorClass
+var project_editor_inst: ProjectEditorClass
 
 func _init():
-    scene_editor = SceneEditorClass.new()
-    script_editor = ScriptEditorClass.new()
-    project_editor = ProjectEditorClass.new()
+    scene_editor_inst = SceneEditorClass.new()
+    script_editor_inst = ScriptEditorClass.new()
+    project_editor_inst = ProjectEditorClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -39,31 +39,31 @@ func handle(message: String) -> String:
 func _route(method: String, params: Dictionary) -> Dictionary:
     match method:
         "scene.get_tree":
-            return scene_editor.get_tree(params)
+            return scene_editor_inst.get_tree(params)
         "scene.add_node":
-            return scene_editor.add_node(params)
+            return scene_editor_inst.add_node(params)
         "scene.remove_node":
-            return scene_editor.remove_node(params)
+            return scene_editor_inst.remove_node(params)
         "scene.update_property":
-            return scene_editor.update_property(params)
+            return scene_editor_inst.update_property(params)
         "scene.get_node":
-            return scene_editor.get_node(params)
+            return scene_editor_inst.get_node(params)
         "scene.save":
-            return scene_editor.save_scene(params)
+            return scene_editor_inst.save_scene(params)
         "scene.open":
-            return scene_editor.open_scene(params)
+            return scene_editor_inst.open_scene(params)
         "script.open":
-            return script_editor.open_script(params)
+            return script_editor_inst.open_script(params)
         "script.get_content":
-            return script_editor.get_content(params)
+            return script_editor_inst.get_content(params)
         "script.get_open":
-            return script_editor.get_open_scripts()
+            return script_editor_inst.get_open_scripts()
         "project.run":
-            return project_editor.run_project(params)
+            return project_editor_inst.run_project(params)
         "project.get_output_log":
-            return project_editor.get_output_log(params)
+            return project_editor_inst.get_output_log(params)
         "project.get_settings":
-            return project_editor.get_settings()
+            return project_editor_inst.get_settings()
         "project.get_info":
             return { "result": Utils.get_engine_info() }
         "handshake":
