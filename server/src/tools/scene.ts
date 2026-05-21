@@ -133,3 +133,119 @@ export function openScene(args: OpenSceneArgs, projectRoot: string, bridge: Godo
   bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
   return { opened: true, message: 'Scene opened in Godot editor.' };
 }
+
+// Tool: getSceneFileContent
+export interface GetSceneFileContentArgs {
+  scene_path: string;
+}
+
+export interface GetSceneFileContentResult {
+  content: string;
+  path: string;
+}
+
+export function getSceneFileContent(args: GetSceneFileContentArgs, projectRoot: string): GetSceneFileContentResult {
+  const resolved = validateProjectPath(args.scene_path, projectRoot);
+  if (!existsSync(resolved)) {
+    throw new Error(`Scene not found: ${args.scene_path}`);
+  }
+  const content = readFileSync(resolved, 'utf-8');
+  return { content, path: args.scene_path };
+}
+
+// Tool: deleteScene
+export interface DeleteSceneArgs {
+  scene_path: string;
+}
+
+export interface DeleteSceneResult {
+  deleted: boolean;
+  offline: boolean;
+  message: string;
+}
+
+export async function deleteScene(args: DeleteSceneArgs, projectRoot: string, bridge: GodotBridge): Promise<DeleteSceneResult> {
+  if (!bridge.isConnected) {
+    return { deleted: false, offline: true, message: 'delete_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  await bridge.call('scene.delete', { scene_path: args.scene_path } as Record<string, unknown>);
+  return { deleted: true, offline: false, message: 'Scene deleted via Godot editor.' };
+}
+
+// Tool: addSceneInstance
+export interface AddSceneInstanceArgs {
+  scene_path: string;
+  parent_path: string;
+  name?: string;
+}
+
+export interface AddSceneInstanceResult {
+  added: boolean;
+  offline: boolean;
+  message: string;
+}
+
+export async function addSceneInstance(args: AddSceneInstanceArgs, projectRoot: string, bridge: GodotBridge): Promise<AddSceneInstanceResult> {
+  if (!bridge.isConnected) {
+    return { added: false, offline: true, message: 'add_scene_instance requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  await bridge.call('scene.add_instance', {
+    scene_path: args.scene_path,
+    parent_path: args.parent_path,
+    ...(args.name !== undefined && { name: args.name }),
+  } as Record<string, unknown>);
+  return { added: true, offline: false, message: 'Scene instance added via Godot editor.' };
+}
+
+// Tool: playScene
+export interface PlaySceneArgs {
+  scene_path?: string;
+}
+
+export interface PlaySceneResult {
+  playing: boolean;
+  offline: boolean;
+  message: string;
+}
+
+export function playScene(args: PlaySceneArgs, projectRoot: string, bridge: GodotBridge): PlaySceneResult {
+  if (!bridge.isConnected) {
+    return { playing: false, offline: true, message: 'play_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  bridge.call('scene.play', { ...(args.scene_path !== undefined && { scene_path: args.scene_path }) } as Record<string, unknown>);
+  return { playing: true, offline: false, message: 'Scene playing via Godot editor.' };
+}
+
+// Tool: stopScene
+export interface StopSceneResult {
+  stopped: boolean;
+  offline: boolean;
+  message: string;
+}
+
+export function stopScene(args: Record<string, unknown>, projectRoot: string, bridge: GodotBridge): StopSceneResult {
+  if (!bridge.isConnected) {
+    return { stopped: false, offline: true, message: 'stop_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  bridge.call('scene.stop', args);
+  return { stopped: true, offline: false, message: 'Scene stopped via Godot editor.' };
+}
+
+// Tool: getSignals
+export interface GetSignalsArgs {
+  node_path: string;
+}
+
+export interface GetSignalsResult {
+  signals: string[];
+  node_path: string;
+}
+
+export function getSignals(args: GetSignalsArgs, projectRoot: string, bridge: GodotBridge): GetSignalsResult {
+  if (!bridge.isConnected) {
+    return { signals: [], node_path: args.node_path };
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = bridge.call('scene.get_signals', { node_path: args.node_path } as any);
+  return { signals: result as string[] || [], node_path: args.node_path };
+}
