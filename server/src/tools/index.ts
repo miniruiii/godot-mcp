@@ -44,6 +44,18 @@ import {
   setupNavigationRegion, setupNavigationAgent, bakeNavigationMesh,
   setNavigationLayers, getNavigationInfo, getNavigationPath
 } from './navigation.js';
+import {
+  addMeshInstance, setupCamera3D, setupLighting, setupEnvironment,
+  addGridMap, setMaterial3D
+} from './scene3d.js';
+import {
+  createParticles, setParticleMaterial, setParticleColorGradient,
+  applyParticlePreset, getParticleInfo
+} from './particle.js';
+import {
+  addAudioPlayer, addAudioBus, addAudioBusEffect, setAudioBus,
+  getAudioBusLayout, getAudioInfo
+} from './audio.js';
 
 export interface ToolDefinition {
   name: string;
@@ -1055,6 +1067,178 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['node_path'],
       },
       handler: (args) => getNavigationPath(args as any, bridge),
+    },
+    // Scene3D tools (6)
+    {
+      name: 'add_mesh_instance',
+      description: 'Create a MeshInstance3D with a primitive mesh',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, mesh_type: { type: 'string' }, position: { type: 'object' } },
+        required: ['node_path', 'mesh_type'],
+      },
+      handler: (args) => addMeshInstance(args as any, bridge),
+    },
+    {
+      name: 'setup_camera_3d',
+      description: 'Create a Camera3D with position and fov',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, position: { type: 'object' }, fov: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setupCamera3D(args as any, bridge),
+    },
+    {
+      name: 'setup_lighting',
+      description: 'Create a light node (OmniLight3D, DirectionalLight3D, SpotLight3D)',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, light_type: { type: 'string' }, position: { type: 'object' } },
+        required: ['node_path', 'light_type'],
+      },
+      handler: (args) => setupLighting(args as any, bridge),
+    },
+    {
+      name: 'setup_environment',
+      description: 'Create a WorldEnvironment with Environment resource',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, background_mode: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setupEnvironment(args as any, bridge),
+    },
+    {
+      name: 'add_gridmap',
+      description: 'Create a GridMap node with optional tile set',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, tile_set_path: { type: 'string' }, cell_size: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => addGridMap(args as any, bridge),
+    },
+    {
+      name: 'set_material_3d',
+      description: 'Apply a material to a MeshInstance3D',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, material_type: { type: 'string' }, properties: { type: 'object' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setMaterial3D(args as any, bridge),
+    },
+    // Particle tools (5)
+    {
+      name: 'create_particles',
+      description: 'Create a GPUParticles2D or GPUParticles3D node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, particle_type: { type: 'string' }, amount: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => createParticles(args as any, bridge),
+    },
+    {
+      name: 'set_particle_material',
+      description: 'Set the process material on a particle system',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, properties: { type: 'object' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setParticleMaterial(args as any, bridge),
+    },
+    {
+      name: 'set_particle_color_gradient',
+      description: 'Set color gradient over particle lifetime',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, color_points: { type: 'array' } },
+        required: ['node_path'],
+      },
+      handler: (args) => setParticleColorGradient(args as any, bridge),
+    },
+    {
+      name: 'apply_particle_preset',
+      description: 'Apply a preset configuration to a particle system',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, preset: { type: 'string' } },
+        required: ['node_path', 'preset'],
+      },
+      handler: (args) => applyParticlePreset(args as any, bridge),
+    },
+    {
+      name: 'get_particle_info',
+      description: 'Get particle system configuration',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getParticleInfo(args as any, bridge),
+    },
+    // Audio tools (6)
+    {
+      name: 'add_audio_player',
+      description: 'Create an AudioStreamPlayer node',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, stream_type: { type: 'string' }, volume_db: { type: 'number' } },
+        required: ['node_path'],
+      },
+      handler: (args) => addAudioPlayer(args as any, bridge),
+    },
+    {
+      name: 'add_audio_bus',
+      description: 'Add a new audio bus',
+      inputSchema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, volume: { type: 'number' } },
+        required: ['name'],
+      },
+      handler: (args) => addAudioBus(args as any, bridge),
+    },
+    {
+      name: 'add_audio_bus_effect',
+      description: 'Add an effect to an audio bus',
+      inputSchema: {
+        type: 'object',
+        properties: { bus_name: { type: 'string' }, effect_type: { type: 'string' } },
+        required: ['bus_name', 'effect_type'],
+      },
+      handler: (args) => addAudioBusEffect(args as any, bridge),
+    },
+    {
+      name: 'set_audio_bus',
+      description: 'Set the audio bus for an AudioStreamPlayer',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' }, bus_index: { type: 'number' } },
+        required: ['node_path', 'bus_index'],
+      },
+      handler: (args) => setAudioBus(args as any, bridge),
+    },
+    {
+      name: 'get_audio_bus_layout',
+      description: 'Get all audio buses and their effects',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args) => getAudioBusLayout(args as Record<string, unknown>, bridge),
+    },
+    {
+      name: 'get_audio_info',
+      description: 'Get audio player configuration',
+      inputSchema: {
+        type: 'object',
+        properties: { node_path: { type: 'string' } },
+        required: ['node_path'],
+      },
+      handler: (args) => getAudioInfo(args as any, bridge),
     },
   ];
 }

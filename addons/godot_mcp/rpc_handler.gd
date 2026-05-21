@@ -11,6 +11,9 @@ const ThemeCommandsClass = preload("res://addons/godot_mcp/editors/theme_command
 const ResourceCommandsClass = preload("res://addons/godot_mcp/editors/resource_commands.gd")
 const PhysicsCommandsClass = preload("res://addons/godot_mcp/editors/physics_commands.gd")
 const NavigationCommandsClass = preload("res://addons/godot_mcp/editors/navigation_commands.gd")
+const AudioCommandsClass = preload("res://addons/godot_mcp/editors/audio_commands.gd")
+const Scene3dCommandsClass = preload("res://addons/godot_mcp/editors/scene3d_commands.gd")
+const ParticleCommandsClass = preload("res://addons/godot_mcp/editors/particle_commands.gd")
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 var scene_editor_inst: SceneEditorClass
@@ -24,6 +27,9 @@ var theme_commands: ThemeCommandsClass
 var resource_commands: ResourceCommandsClass
 var physics_commands: PhysicsCommandsClass
 var navigation_commands: NavigationCommandsClass
+var audio_commands: AudioCommandsClass
+var scene3d_commands: Scene3dCommandsClass
+var particle_commands: ParticleCommandsClass
 
 func _init():
     scene_editor_inst = SceneEditorClass.new()
@@ -37,6 +43,9 @@ func _init():
     resource_commands = ResourceCommandsClass.new()
     physics_commands = PhysicsCommandsClass.new()
     navigation_commands = NavigationCommandsClass.new()
+    audio_commands = AudioCommandsClass.new()
+    scene3d_commands = Scene3dCommandsClass.new()
+    particle_commands = ParticleCommandsClass.new()
 
 func handle(message: String) -> String:
     var parsed = JSON.parse_string(message)
@@ -273,6 +282,43 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return navigation_commands.get_navigation_info(params)
         "navigation.get_path":
             return navigation_commands.get_navigation_path(params)
+        # audio.* routes for audio commands (6 tools)
+        "audio.add_player":
+            return audio_commands.add_audio_player(params)
+        "audio.add_bus":
+            return audio_commands.add_audio_bus(params)
+        "audio.add_bus_effect":
+            return audio_commands.add_audio_bus_effect(params)
+        "audio.set_bus":
+            return audio_commands.set_audio_bus(params)
+        "audio.get_bus_layout":
+            return audio_commands.get_audio_bus_layout(params)
+        "audio.get_info":
+            return audio_commands.get_audio_info(params)
+        # scene3d.* routes for 3D scene commands (6 tools)
+        "scene3d.add_mesh":
+            return scene3d_commands.add_mesh(params)
+        "scene3d.setup_camera":
+            return scene3d_commands.setup_camera(params)
+        "scene3d.setup_lighting":
+            return scene3d_commands.setup_lighting(params)
+        "scene3d.setup_environment":
+            return scene3d_commands.setup_environment(params)
+        "scene3d.add_gridmap":
+            return scene3d_commands.add_gridmap(params)
+        "scene3d.set_material":
+            return scene3d_commands.set_material(params)
+        # particle.* routes for particle commands (5 tools)
+        "particle.create":
+            return particle_commands.create_particles(params)
+        "particle.set_material":
+            return particle_commands.set_particle_material(params)
+        "particle.set_gradient":
+            return particle_commands.set_particle_color_gradient(params)
+        "particle.apply_preset":
+            return particle_commands.apply_particle_preset(params)
+        "particle.get_info":
+            return particle_commands.get_particle_info(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 

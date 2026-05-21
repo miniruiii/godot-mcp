@@ -41,10 +41,10 @@ describe('MCP bridge integration', () => {
     expect(bridge.getGodotVersion()).toBe('4.6.2');
   });
 
-  it('has 105 tools registered', () => {
+  it('has 122 tools registered', () => {
     const config = loadConfig('nonexistent.json');
     const tools = buildToolRegistry(config, bridge);
-    expect(tools.length).toBe(105);
+    expect(tools.length).toBe(122);
   });
 
   it('save_scene succeeds when bridge is connected', async () => {
