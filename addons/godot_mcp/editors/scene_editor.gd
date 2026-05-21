@@ -130,3 +130,132 @@ func _find_node_by_path(path: String) -> Node:
 
     var relative = path.trim_prefix("/root/" + root.name + "/")
     return root.get_node_or_null(NodePath(relative))
+
+func duplicate_node(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var new_name = params.get("new_name", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    var parent = target.get_parent()
+    if parent == null:
+        return { "error": { "code": -32602, "message": "Node has no parent: %s" % node_path } }
+
+    var duplicated = target.duplicate()
+    if duplicated == null:
+        return { "error": { "code": -32602, "message": "Failed to duplicate node: %s" % node_path } }
+
+    if new_name == "":
+        new_name = target.name + "_copy"
+    duplicated.name = new_name
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Duplicate Node via MCP")
+    undo.add_do_method(parent, "add_child", duplicated, true)
+    undo.add_undo_method(parent, "remove_child", duplicated)
+    undo.commit_action()
+
+    var edited_root = EditorInterface.get_edited_scene_root()
+    if edited_root:
+        duplicated.set_owner(edited_root)
+
+    return { "result": { "duplicated": true, "new_path": parent.get_path().absent_parent().join(duplicated.name).simplify_absolute().simplify() if parent.get_path() != NodePath("/") else "/" + duplicated.name } }
+
+func move_node(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var new_parent_path = params.get("new_parent_path", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    var new_parent = _find_node_by_path(new_parent_path)
+    if new_parent == null:
+        return { "error": { "code": -32602, "message": "New parent not found: %s" % new_parent_path } }
+
+    var old_parent = target.get_parent()
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Move Node via MCP")
+    undo.add_do_method(target, "reparent", new_parent, true)
+    undo.add_undo_method(target, "reparent", old_parent, true)
+    undo.commit_action()
+
+    return { "result": { "moved": true, "node_path": node_path, "new_parent": new_parent_path } }
+
+func connect_signal(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var signal = params.get("signal", "")
+    var target_path = params.get("target_path", "")
+    var method = params.get("method", "")
+
+    var source = _find_node_by_path(node_path)
+    if source == null:
+        return { "error": { "code": -32602, "message": "Source node not found: %s" % node_path } }
+
+    var target = _find_node_by_path(target_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Target node not found: %s" % target_path } }
+
+    if signal == "":
+        return { "error": { "code": -32600, "message": "Missing signal name" } }
+
+    if method == "":
+        return { "error": { "code": -32600, "message": "Missing method name" } }
+
+    var callable = Callable(target, method)
+    var err = source.connect(signal, callable)
+    if err != OK:
+        return { "error": { "code": -32602, "message": "Failed to connect signal '%s': %s" % [signal, str(err)] } }
+
+    return { "result": { "connected": true } }
+
+func disconnect_signal(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var signal = params.get("signal", "")
+    var target_path = params.get("target_path", "")
+    var method = params.get("method", "")
+
+    var source = _find_node_by_path(node_path)
+    if source == null:
+        return { "error": { "code": -32602, "message": "Source node not found: %s" % node_path } }
+
+    var target = _find_node_by_path(target_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Target node not found: %s" % target_path } }
+
+    if signal == "":
+        return { "error": { "code": -32600, "message": "Missing signal name" } }
+
+    if method == "":
+        return { "error": { "code": -32600, "message": "Missing method name" } }
+
+    var callable = Callable(target, method)
+    var err = source.disconnect(signal, callable)
+    if err != OK:
+        return { "error": { "code": -32602, "message": "Failed to disconnect signal '%s': %s" % [signal, str(err)] } }
+
+    return { "result": { "disconnected": true } }
+
+func rename_node(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var new_name = params.get("new_name", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    if new_name == "":
+        return { "error": { "code": -32600, "message": "Missing new_name" } }
+
+    var old_name = target.name
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Rename Node via MCP")
+    undo.add_do_property(target, "name", new_name)
+    undo.add_undo_property(target, "name", old_name)
+    undo.commit_action()
+
+    return { "result": { "renamed": true, "new_name": new_name } }
