@@ -115,7 +115,7 @@ func _find_nodes_with_script_recursive(node: Node, target_script: Script, out: A
 		})
 
 	for child in node.get_children():
-		var child_path = path + "/" + node.name if path != "" else "/" + node.name
+		var child_path = path + "/" + child.name if path != "" else "/" + child.name
 		_find_nodes_with_script_recursive(child, target_script, out, child_path)
 
 func get_autoload(params: Dictionary) -> Dictionary:
@@ -184,7 +184,7 @@ func _find_ui_elements_recursive(node: Node, search_text: String, control_type: 
 			})
 
 	for child in node.get_children():
-		var child_path = path + "/" + node.name if path != "" else "/" + node.name
+		var child_path = path + "/" + child.name if path != "" else "/" + child.name
 		_find_ui_elements_recursive(child, search_text, control_type, out, child_path)
 
 func click_button_by_text(params: Dictionary) -> Dictionary:
@@ -208,7 +208,7 @@ func _find_button_by_text_recursive(node: Node, text: String) -> Button:
 	if node is Button:
 		var label = node.get_node_or_null("Label")
 		if label != null and label.text == text:
-			return button as Button
+			return node as Button
 		if node.text == text:
 			return node as Button
 
@@ -264,7 +264,7 @@ func _find_nodes_by_distance_recursive(node: Node, origin: Vector3, max_dist: fl
 		})
 
 	for child in node.get_children():
-		var child_path = path + "/" + node.name if path != "" else "/" + node.name
+		var child_path = path + "/" + child.name if path != "" else "/" + child.name
 		_find_nodes_by_distance_recursive(child, origin, max_dist, out, child_path, origin_node)
 
 func navigate_to(params: Dictionary) -> Dictionary:
