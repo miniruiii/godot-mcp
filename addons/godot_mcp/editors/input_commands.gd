@@ -37,6 +37,9 @@ func simulate_mouse_click(params: Dictionary) -> Dictionary:
 		return { "error": { "code": ERR_INVALID_POSITION, "message": "Missing position.x or position.y" } }
 
 	var button = params.get("button", 1)
+	if button < 1 or button > 9:
+		return { "error": { "code": ERR_INVALID_BUTTON, "message": "Button must be between 1 and 9 (MouseButton enum)" } }
+
 	var pressed = params.get("pressed", true)
 
 	var event = InputEventMouseButton.new()
@@ -124,7 +127,10 @@ func _parse_event_from_dict(event_data: Dictionary) -> InputEvent:
 		if keycode != "":
 			event.keycode = OS.find_keycode_from_string(keycode)
 		else:
-			event.keycode = event_data.get("keycode_value", 0)
+			var raw_keycode = event_data.get("keycode_value", 0)
+			if raw_keycode == 0:
+				return null
+			event.keycode = raw_keycode
 		event.pressed = event_data.get("pressed", true)
 		event.meta_pressed = event_data.get("meta_pressed", false)
 		event.ctrl_pressed = event_data.get("ctrl_pressed", false)
