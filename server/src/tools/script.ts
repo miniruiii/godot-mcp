@@ -1,5 +1,6 @@
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { validateProjectPath } from './file.js';
+import type { GodotBridge } from '../godot-bridge.js';
 
 export interface CreateScriptArgs {
   script_path: string;
@@ -110,4 +111,79 @@ export function editScript(args: EditScriptArgs, projectRoot: string): EditScrip
     path: args.script_path,
     linesChanged: Math.abs((args.end_line ?? lines.length) - (args.start_line ?? 1)) + 1,
   };
+}
+
+// Tool 5: listScripts
+export interface ListScriptsArgs extends Record<string, unknown> {}
+
+export interface ListScriptsResult {
+  scripts?: string[];
+  offline?: boolean;
+  message?: string;
+}
+
+export function listScripts(args: ListScriptsArgs, bridge: GodotBridge): ListScriptsResult {
+  if (!bridge.isConnected) {
+    return { offline: true, message: 'listScripts requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  return bridge.call('script.list', args) as ListScriptsResult;
+}
+
+// Tool 6: attachScript
+export interface AttachScriptArgs {
+  node_path: string;
+  script_path: string;
+}
+
+export interface AttachScriptResult {
+  success?: boolean;
+  offline?: boolean;
+  message?: string;
+}
+
+export function attachScript(args: AttachScriptArgs, bridge: GodotBridge): AttachScriptResult {
+  if (!bridge.isConnected) {
+    return { offline: true, message: 'attachScript requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  return bridge.call('script.attach', args) as AttachScriptResult;
+}
+
+// Tool 7: validateScript
+export interface ValidateScriptArgs {
+  script_path?: string;
+  code?: string;
+}
+
+export interface ValidateScriptResult {
+  valid?: boolean;
+  errors?: string[];
+  offline?: boolean;
+  message?: string;
+}
+
+export function validateScript(args: ValidateScriptArgs, bridge: GodotBridge): ValidateScriptResult {
+  if (!bridge.isConnected) {
+    return { offline: true, message: 'validateScript requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  return bridge.call('script.validate', args) as ValidateScriptResult;
+}
+
+// Tool 8: searchInFiles
+export interface SearchInFilesArgs {
+  text: string;
+  extensions?: string[];
+  case_sensitive?: boolean;
+}
+
+export interface SearchInFilesResult {
+  matches?: Array<{ file: string; line: number; content: string }>;
+  offline?: boolean;
+  message?: string;
+}
+
+export function searchInFiles(args: SearchInFilesArgs, bridge: GodotBridge): SearchInFilesResult {
+  if (!bridge.isConnected) {
+    return { offline: true, message: 'searchInFiles requires Godot editor to be running with the Godot MCP plugin enabled.' };
+  }
+  return bridge.call('script.search', args) as SearchInFilesResult;
 }
