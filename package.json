@@ -2,6 +2,7 @@
   "name": "godot-mcp",
   "version": "1.0.0",
   "description": "Model Context Protocol server for Godot 4.6.2+",
+  "type": "module",
   "main": "dist/server.js",
   "bin": {
     "godot-mcp": "dist/server.js"
@@ -9,7 +10,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "start": "node dist/server.js"
   },
   "keywords": ["godot", "mcp", "model-context-protocol"],

@@ -3,3 +3,9 @@ dist/
 *.log
 .DS_Store
 .env
+.env.*
+coverage/
+.vscode/
+*.tsbuildinfo
+tmp/
+Thumbs.db
