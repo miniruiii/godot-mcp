@@ -65,6 +65,7 @@ func add_node(params: Dictionary) -> Dictionary:
     if edited_root:
         new_node.set_owner(edited_root)
 
+    EditorInterface.save_scene()
     return { "result": { "added": true, "node_path": parent_path + "/" + node_name } }
 
 func remove_node(params: Dictionary) -> Dictionary:
@@ -81,6 +82,7 @@ func remove_node(params: Dictionary) -> Dictionary:
     undo.add_undo_reference(target)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "removed": true } }
 
 func update_property(params: Dictionary) -> Dictionary:
@@ -104,6 +106,7 @@ func update_property(params: Dictionary) -> Dictionary:
     undo.add_undo_property(target, property, old_value)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "updated": true, "property": property, "value": Utils.value_to_string(new_value) } }
 
 func save_scene(params: Dictionary) -> Dictionary:
@@ -159,6 +162,7 @@ func duplicate_node(params: Dictionary) -> Dictionary:
     undo.add_undo_method(duplicated, "set_owner", target)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "duplicated": true, "new_path": str(parent.get_path()) + "/" + duplicated.name } }
 
 func move_node(params: Dictionary) -> Dictionary:
@@ -188,6 +192,7 @@ func move_node(params: Dictionary) -> Dictionary:
     undo.add_undo_method(target, "reparent", old_parent, true)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "moved": true, "node_path": node_path, "new_parent": new_parent_path } }
 
 func connect_signal(params: Dictionary) -> Dictionary:
@@ -218,6 +223,7 @@ func connect_signal(params: Dictionary) -> Dictionary:
     undo.add_undo_method(source, "disconnect", signal_name, callable)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "connected": true } }
 
 func disconnect_signal(params: Dictionary) -> Dictionary:
@@ -248,6 +254,7 @@ func disconnect_signal(params: Dictionary) -> Dictionary:
     undo.add_undo_method(source, "connect", signal_name, callable)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "disconnected": true } }
 
 func rename_node(params: Dictionary) -> Dictionary:
@@ -269,4 +276,5 @@ func rename_node(params: Dictionary) -> Dictionary:
     undo.add_undo_property(target, "name", old_name)
     undo.commit_action()
 
+    EditorInterface.save_scene()
     return { "result": { "renamed": true, "new_name": new_name } }

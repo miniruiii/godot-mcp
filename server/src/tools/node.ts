@@ -111,7 +111,6 @@ export async function removeNode(args: RemoveNodeArgs, projectRoot: string, brid
   validateRequired(args as unknown as Record<string, unknown>, 'scene_path', 'node_path');
   await bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
   await bridge.call('scene.remove_node', { scene_path: args.scene_path, node_path: args.node_path } as Record<string, unknown>);
-  await bridge.call('scene.save', { scene_path: args.scene_path } as Record<string, unknown>);
   return { removed: true, offline: false, message: 'Node removed via Godot editor.' };
 }
 
