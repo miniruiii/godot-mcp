@@ -47,9 +47,10 @@ export class GodotBridge {
 
     this.connectingPromise = new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.url);
+        const ws = new WebSocket(this.url);
+        this.ws = ws;
 
-        this.ws.on('open', async () => {
+        ws.on('open', async () => {
           this.reconnectDelay = 1000;
           try {
             const result = await this.call('handshake', {}) as { version: string; godot_version: string };
@@ -60,16 +61,18 @@ export class GodotBridge {
           resolve();
         });
 
-        this.ws.on('message', (data) => {
+        ws.on('message', (data) => {
           this.handleMessage(data.toString());
         });
 
-        this.ws.on('close', () => {
-          this.ws = null;
-          this.scheduleReconnect();
+        ws.on('close', () => {
+          if (this.ws === ws) {
+            this.ws = null;
+            this.scheduleReconnect();
+          }
         });
 
-        this.ws.on('error', (err) => {
+        ws.on('error', (err) => {
           if (!this.isConnected) {
             reject(err);
           }
