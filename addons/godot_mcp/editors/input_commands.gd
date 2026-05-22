@@ -16,6 +16,8 @@ func simulate_key(params: Dictionary) -> Dictionary:
 
 	var pressed = params.get("pressed", true)
 	var modifiers = params.get("modifiers", {})
+	if not modifiers is Dictionary:
+		modifiers = {}
 
 	var keycode_value = OS.find_keycode_from_string(keycode)
 	if keycode_value == 0:

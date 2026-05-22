@@ -33,18 +33,21 @@ func get_tree(params: Dictionary) -> Dictionary:
 
 	var root = main_loop.root
 	var nodes = []
-	_collect_runtime_nodes(root, nodes, "")
+	var max_depth = params.get("max_depth", 5)
+	_collect_runtime_nodes(root, nodes, "", 0, max_depth)
 	return { "result": { "nodes": nodes, "scene_path": root.scene_file_path if root.scene_file_path else "" } }
 
-func _collect_runtime_nodes(node: Node, out: Array, path: String) -> void:
+func _collect_runtime_nodes(node: Node, out: Array, path: String, depth: int, max_depth: int) -> void:
 	var node_path = path + "/" + node.name if path != "" else "/" + node.name
 	out.append({
 		"name": node.name,
 		"type": node.get_class(),
 		"path": node_path,
 	})
+	if depth >= max_depth:
+		return
 	for child in node.get_children():
-		_collect_runtime_nodes(child, out, node_path)
+		_collect_runtime_nodes(child, out, node_path, depth + 1, max_depth)
 
 func get_node_properties(params: Dictionary) -> Dictionary:
 	print("[MCP] game.get_node_properties: node_path=%s" % params.get("node_path", ""))

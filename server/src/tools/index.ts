@@ -215,9 +215,14 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     // Runtime tools (19)
     {
       name: 'get_game_scene_tree',
-      description: 'Get the active scene tree from a running Godot game',
-      inputSchema: { type: 'object', properties: {} },
-      handler: () => getGameSceneTree({}, projectRoot, bridge),
+      description: 'Get the active scene tree from a running Godot game. Use max_depth to limit tree depth and avoid large payloads.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          max_depth: { type: 'number', description: 'Maximum tree depth to traverse (default: 5)' },
+        },
+      },
+      handler: (args: Record<string, unknown>) => getGameSceneTree({ max_depth: args.max_depth as number | undefined }, projectRoot, bridge),
     },
     {
       name: 'get_game_node_properties',

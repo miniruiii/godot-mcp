@@ -1,7 +1,9 @@
 import type { GodotBridge } from '../godot-bridge.js';
 
 // Tool 1: getGameSceneTree
-export interface GetGameSceneTreeArgs {}
+export interface GetGameSceneTreeArgs {
+  max_depth?: number;
+}
 
 export interface GetGameSceneTreeResult {
   tree?: Record<string, unknown>;
@@ -9,11 +11,11 @@ export interface GetGameSceneTreeResult {
   message?: string;
 }
 
-export async function getGameSceneTree(_args: GetGameSceneTreeArgs, _projectRoot: string, bridge: GodotBridge): Promise<GetGameSceneTreeResult> {
+export async function getGameSceneTree(args: GetGameSceneTreeArgs, _projectRoot: string, bridge: GodotBridge): Promise<GetGameSceneTreeResult> {
   if (!bridge.isConnected) {
     return { offline: true, message: 'getGameSceneTree requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
-  return await bridge.call('game.get_tree', {}) as GetGameSceneTreeResult;
+  return await bridge.call('game.get_tree', { max_depth: args.max_depth }) as GetGameSceneTreeResult;
 }
 
 // Tool 2: getGameNodeProperties
