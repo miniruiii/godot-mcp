@@ -35,7 +35,7 @@ func handle(message: String) -> String:
     if method == "":
         return _error_response(id, -32600, "Invalid Request: missing method")
 
-    var result = _route(method, params)
+    var result = await _route(method, params)
 
     if result.has("error"):
         return _error_response(id, result["error"]["code"], result["error"]["message"], result["error"].get("data"))
@@ -94,7 +94,7 @@ func _route(method: String, params: Dictionary) -> Dictionary:
         "game.click_button_by_text":
             return runtime_commands.click_button_by_text(params)
         "game.wait_for_node":
-            return runtime_commands.wait_for_node(params)
+            return await runtime_commands.wait_for_node(params)
         "game.find_nearby_nodes":
             return runtime_commands.find_nearby_nodes(params)
         "game.navigate_to":
@@ -110,7 +110,7 @@ func _route(method: String, params: Dictionary) -> Dictionary:
         "game.stop_recording":
             return runtime_commands.stop_recording(params)
         "game.replay_recording":
-            return runtime_commands.replay_recording(params)
+            return await runtime_commands.replay_recording(params)
         # input.* routes for input commands (7 tools)
         "input.simulate_key":
             return input_commands.simulate_key(params)

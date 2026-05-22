@@ -33,7 +33,7 @@ func _process(_delta):
         ws_server.poll()
 
 func _on_message_received(peer_id: int, message: String):
-    var response = rpc_handler.handle(message)
+    var response = await rpc_handler.handle(message)
     if response != "":
         ws_server.send_to(peer_id, response)
 
