@@ -19,7 +19,9 @@ func _enter_tree():
     if err != OK:
         push_error("Godot MCP: Failed to start WebSocket server on port %d" % port)
     else:
-        print("Godot MCP: WebSocket server listening on port %d" % port)
+        var msg = "Godot MCP: WebSocket server listening on port %d" % port
+        print(msg)
+        rpc_handler.project_editor_inst.append_log(msg)
 
 func _exit_tree():
     if ws_server:
@@ -38,7 +40,11 @@ func _on_message_received(peer_id: int, message: String):
         ws_server.send_to(peer_id, response)
 
 func _on_client_connected(peer_id: int):
-    print("Godot MCP: Client connected (%d)" % peer_id)
+    var msg = "Godot MCP: Client connected (%d)" % peer_id
+    print(msg)
+    rpc_handler.project_editor_inst.append_log(msg)
 
 func _on_client_disconnected(peer_id: int):
-    print("Godot MCP: Client disconnected (%d)" % peer_id)
+    var msg = "Godot MCP: Client disconnected (%d)" % peer_id
+    print(msg)
+    rpc_handler.project_editor_inst.append_log(msg)
