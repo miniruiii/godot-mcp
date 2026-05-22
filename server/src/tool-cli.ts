@@ -3,7 +3,7 @@ import { loadConfig } from './config.js';
 import { GodotBridge } from './godot-bridge.js';
 import { buildToolRegistry, getToolGroups, type ToolDefinition } from './tools/index.js';
 
-const COMMAND_MAP: Record<string, string> = {
+export const COMMAND_MAP: Record<string, string> = {
   'project list-files': 'list_project_files',
   'project settings': 'read_project_settings',
   'project info': 'get_project_info',
@@ -25,11 +25,11 @@ const COMMAND_MAP: Record<string, string> = {
   'file write': 'write_file',
 };
 
-function kebabToCamel(s: string): string {
+export function kebabToCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
-function parseCliFlags(args: string[]): Record<string, unknown> {
+export function parseCliFlags(args: string[]): Record<string, unknown> {
   const params: Record<string, unknown> = {};
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -170,7 +170,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  console.error(JSON.stringify({ error: String(err) }));
-  process.exit(1);
-});
+import { fileURLToPath } from 'url';
+
+if (import.meta.url.startsWith('file:') && process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error(JSON.stringify({ error: String(err) }));
+    process.exit(1);
+  });
+}
