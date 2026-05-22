@@ -33,6 +33,7 @@ func poll():
     if tcp_server.is_connection_available():
         var conn = tcp_server.take_connection()
         var ws = WebSocketPeer.new()
+        ws.set_outbound_buffer_size(2 * 1024 * 1024)  # 2MB to handle large scene trees
         var err = ws.accept_stream(conn)
         if err == OK:
             var peer_id = next_peer_id

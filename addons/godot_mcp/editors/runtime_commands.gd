@@ -25,6 +25,9 @@ func _find_game_node(path: String) -> Node:
 		return null
 	return main_loop.root.get_node_or_null(NodePath(path))
 
+const DEFAULT_MAX_DEPTH = 3
+const DEFAULT_MAX_NODES = 300
+
 func get_tree(params: Dictionary) -> Dictionary:
 	print("[MCP] game.get_tree")
 	var main_loop = Engine.get_main_loop()
@@ -33,21 +36,40 @@ func get_tree(params: Dictionary) -> Dictionary:
 
 	var root = main_loop.root
 	var nodes = []
-	var max_depth = params.get("max_depth", 5)
-	_collect_runtime_nodes(root, nodes, "", 0, max_depth)
-	return { "result": { "nodes": nodes, "scene_path": root.scene_file_path if root.scene_file_path else "" } }
+	var max_depth = params.get("max_depth", DEFAULT_MAX_DEPTH)
+	if not max_depth is int or max_depth < 0:
+		max_depth = DEFAULT_MAX_DEPTH
 
-func _collect_runtime_nodes(node: Node, out: Array, path: String, depth: int, max_depth: int) -> void:
+	var node_count = _collect_runtime_nodes(root, nodes, "", 0, max_depth, DEFAULT_MAX_NODES)
+	print("[MCP] game.get_tree: collected %d nodes (max_depth=%d, max_nodes=%d)" % [node_count, max_depth, DEFAULT_MAX_NODES])
+
+	return { "result": {
+		"nodes": nodes,
+		"scene_path": root.scene_file_path if root.scene_file_path else "",
+		"node_count": node_count,
+		"truncated": node_count >= DEFAULT_MAX_NODES,
+	} }
+
+func _collect_runtime_nodes(node: Node, out: Array, path: String, depth: int, max_depth: int, max_nodes: int) -> int:
+	if out.size() >= max_nodes:
+		return out.size()
+
 	var node_path = path + "/" + node.name if path != "" else "/" + node.name
 	out.append({
 		"name": node.name,
 		"type": node.get_class(),
 		"path": node_path,
 	})
+
 	if depth >= max_depth:
-		return
+		return out.size()
+
 	for child in node.get_children():
-		_collect_runtime_nodes(child, out, node_path, depth + 1, max_depth)
+		_collect_runtime_nodes(child, out, node_path, depth + 1, max_depth, max_nodes)
+		if out.size() >= max_nodes:
+			return out.size()
+
+	return out.size()
 
 func get_node_properties(params: Dictionary) -> Dictionary:
 	print("[MCP] game.get_node_properties: node_path=%s" % params.get("node_path", ""))
