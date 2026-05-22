@@ -41,7 +41,7 @@ describe('MCP bridge integration', () => {
     expect(bridge.getGodotVersion()).toBe('4.6.2');
   });
 
-  it('has 53 tools registered', () => {
+  it('has 52 tools registered', () => {
     const config = loadConfig('nonexistent.json');
     const tools = buildToolRegistry(config, bridge);
     expect(tools.length).toBe(52);
