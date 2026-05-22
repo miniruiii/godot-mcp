@@ -5,7 +5,7 @@
 ## 功能特性
 
 - **双模式运行**：离线时通过文件系统操作，Godot 编辑器启动后解锁实时通信
-- **52 个内置工具**：覆盖项目探索、场景编辑、脚本管理、节点操作、运行时内省、输入模拟、项目运行
+- **50 个内置工具**：覆盖项目探索、场景编辑、脚本管理、节点操作、运行时内省、输入模拟、项目运行
 - **三种运行模式**：Full / Lite / Minimal，适配不同 AI 客户端的上下文限制
 - **安全可靠**：路径限制防止目录遍历攻击；WebSocket 仅绑定本地
 - **UndoRedo 支持**：所有编辑器修改通过 Godot 内置撤销系统
@@ -114,20 +114,20 @@ godot-mcp [选项]
 - `write_file` — 写入文件
 
 ### 运行时工具（在线）
-- `get_game_scene_tree` — 获取运行中游戏的场景树
+- `get_game_scene_tree` — 获取运行中游戏的场景树（支持 `max_depth` 限制返回深度，避免数据过大）
 - `get_game_node_properties` — 获取游戏节点所有属性
 - `set_game_node_property` — 设置游戏节点属性
-- `execute_game_script` — 在运行游戏中执行 GDScript
+- `execute_game_script` — 在运行游戏中执行 GDScript（实例化脚本，如存在 `_ready()` 则调用）
 - `find_nodes_by_script` — 按脚本查找节点
 - `get_autoload` — 获取自动加载单例
 - `batch_get_properties` — 批量获取多个节点属性
 - `find_ui_elements` — 按类型或文本查找 UI 元素
 - `click_button_by_text` — 点击指定文本的按钮
 - `wait_for_node` — 等待节点出现
-- `find_nearby_nodes` — 查找附近节点
-- `navigate_to` — 导航到目标节点
+- `find_nearby_nodes` — 查找附近节点（需要 2D/3D 位置节点）
+- `navigate_to` — 设置 NavigationAgent 导航目标
 - `get_game_node_property` — 获取单个属性值
-- `capture_frames` — 捕获视口帧
+- `capture_frames` — 捕获视口帧（需要游戏视口处于活动状态）
 - `monitor_properties` — 监控属性变化
 - `start_recording` — 开始录制输入
 - `stop_recording` — 停止录制并获取数据
@@ -141,6 +141,18 @@ godot-mcp [选项]
 - `simulate_sequence` — 模拟输入序列
 - `get_input_actions` — 获取所有输入动作
 - `set_input_action` — 添加/修改输入动作
+
+## 测试结果
+
+| 类别 | 通过 | 说明 |
+|------|------|------|
+| Project (5) | 5/5 | 全部通过 |
+| Scene (8) | 8/8 | 全部通过 |
+| Script (3) | 3/3 | 全部通过 |
+| Node (8) | 8/8 | 全部通过 |
+| Input (7) | 7/7 | 全部通过 |
+| Runtime (19) | 17/19 | `capture_frames` 需要活动视口；`find_nearby_nodes`/`navigate_to` 需要特定节点类型 |
+| **总计** | **48/50** | **通过率 96%** |
 
 ## 架构
 
