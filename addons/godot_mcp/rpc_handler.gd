@@ -35,11 +35,14 @@ func handle(message: String) -> String:
     if method == "":
         return _error_response(id, -32600, "Invalid Request: missing method")
 
+    print("[MCP] → %s" % method)
     var result = await _route(method, params)
 
     if result.has("error"):
+        print("[MCP] ← ERROR %s: %s" % [method, result["error"]["message"]])
         return _error_response(id, result["error"]["code"], result["error"]["message"], result["error"].get("data"))
 
+    print("[MCP] ← OK %s" % method)
     return _success_response(id, result.get("result", {}))
 
 func _route(method: String, params: Dictionary) -> Dictionary:
