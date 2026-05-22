@@ -67,7 +67,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' } },
         required: ['scene_path'],
       },
-      handler: (args) => saveScene(args as { scene_path: string }, projectRoot, bridge.isConnected),
+      handler: (args) => saveScene(args as { scene_path: string }, projectRoot, bridge),
     },
     {
       name: 'open_scene',
@@ -77,7 +77,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' } },
         required: ['scene_path'],
       },
-      handler: (args) => openScene(args as { scene_path: string }, projectRoot, bridge.isConnected),
+      handler: (args) => openScene(args as { scene_path: string }, projectRoot, bridge),
     },
     {
       name: 'get_scene_tree',
@@ -107,7 +107,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, parent_path: { type: 'string' }, node_type: { type: 'string' }, node_name: { type: 'string' } },
         required: ['scene_path', 'parent_path', 'node_type', 'node_name'],
       },
-      handler: (args) => addNode(args as any, projectRoot, bridge.isConnected),
+      handler: (args) => addNode(args as any, projectRoot, bridge),
     },
     {
       name: 'remove_node',
@@ -117,7 +117,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
         required: ['scene_path', 'node_path'],
       },
-      handler: (args) => removeNode(args as any, projectRoot, bridge.isConnected),
+      handler: (args) => removeNode(args as any, projectRoot, bridge),
     },
     {
       name: 'update_property',
@@ -127,7 +127,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, property: { type: 'string' }, value: { type: 'string' } },
         required: ['scene_path', 'node_path', 'property', 'value'],
       },
-      handler: (args) => updateProperty(args as any, projectRoot, bridge.isConnected),
+      handler: (args) => updateProperty(args as any, projectRoot, bridge),
     },
     {
       name: 'create_script',
@@ -166,7 +166,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { scene_path: { type: 'string' } },
       },
-      handler: (args) => runProject(args as any, bridge.isConnected),
+      handler: (args) => runProject(args as any, bridge),
     },
     {
       name: 'get_output_log',
@@ -175,7 +175,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { lines: { type: 'number' } },
       },
-      handler: (args) => getOutputLog(args as any, bridge.isConnected),
+      handler: (args) => getOutputLog(args as any, bridge),
     },
     {
       name: 'read_file',

@@ -28,8 +28,8 @@ func get_content(params: Dictionary) -> Dictionary:
     }
 
 func get_open_scripts() -> Dictionary:
-    var editor = EditorInterface.get_script_editor()
-    var open_scripts = editor.get_open_scripts()
+    var editor_interface = EditorInterface.get_script_editor()
+    var open_scripts: Array = editor_interface.get_open_scripts()
     var result = []
     for scr in open_scripts:
         result.append({

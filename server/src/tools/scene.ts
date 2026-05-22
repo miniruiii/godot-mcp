@@ -1,3 +1,4 @@
+import type { GodotBridge } from '../godot-bridge.js';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { parseTscn, computeNodePaths, type SceneNode } from '../file-parser.js';
@@ -88,8 +89,7 @@ export function createScene(args: CreateSceneArgs, projectRoot: string): CreateS
     throw new Error(`Scene already exists: ${args.scene_path}`);
   }
 
-  const uid = Math.random().toString(36).substring(2, 15);
-  const content = `[gd_scene load_steps=1 format=3 uid="uid://${uid}"]
+  const content = `[gd_scene load_steps=1 format=3]
 
 [node name="${args.root_name}" type="${args.root_type}"]
 `;
@@ -107,10 +107,12 @@ export interface SaveSceneResult {
   message: string;
 }
 
-export function saveScene(_args: SaveSceneArgs, _projectRoot: string, godotConnected: boolean): SaveSceneResult {
-  if (!godotConnected) {
+export async function saveScene(args: SaveSceneArgs, projectRoot: string, bridge: GodotBridge): Promise<SaveSceneResult> {
+  if (!bridge.isConnected) {
     return { saved: false, message: 'save_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
+  await bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
+  await bridge.call('scene.save', { scene_path: args.scene_path } as Record<string, unknown>);
   return { saved: true, message: 'Scene saved via Godot editor.' };
 }
 
@@ -123,9 +125,10 @@ export interface OpenSceneResult {
   message: string;
 }
 
-export function openScene(_args: OpenSceneArgs, _projectRoot: string, godotConnected: boolean): OpenSceneResult {
-  if (!godotConnected) {
+export function openScene(args: OpenSceneArgs, projectRoot: string, bridge: GodotBridge): OpenSceneResult {
+  if (!bridge.isConnected) {
     return { opened: false, message: 'open_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
+  bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
   return { opened: true, message: 'Scene opened in Godot editor.' };
 }

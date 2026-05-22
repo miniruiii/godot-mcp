@@ -43,8 +43,17 @@ export function readFileTool(args: ReadFileArgs, projectRoot: string): FileResul
   return { content, size: Buffer.byteLength(content) };
 }
 
+function unescapeContent(content: string): string {
+  return content
+    .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\r/g, '\r')
+    .replace(/\\\\/g, '\\');
+}
+
 export function writeFileTool(args: WriteFileArgs, projectRoot: string): { bytesWritten: number } {
   const resolved = validateProjectPath(args.path, projectRoot);
-  writeFileSync(resolved, args.content, 'utf-8');
-  return { bytesWritten: Buffer.byteLength(args.content) };
+  const unescaped = unescapeContent(args.content);
+  writeFileSync(resolved, unescaped, 'utf-8');
+  return { bytesWritten: Buffer.byteLength(unescaped) };
 }
