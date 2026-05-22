@@ -35,20 +35,23 @@ func handle(message: String) -> String:
     if method == "":
         return _error_response(id, -32600, "Invalid Request: missing method")
 
-    var req_log = "[MCP] → %s" % method
-    print(req_log)
-    project_editor_inst.append_log(req_log)
+    if method != "log.print":
+        var req_log = "[MCP] → %s" % method
+        print(req_log)
+        project_editor_inst.append_log(req_log)
     var result = await _route(method, params)
 
     if result.has("error"):
-        var err_log = "[MCP] ← ERROR %s: %s" % [method, result["error"]["message"]]
-        print(err_log)
-        project_editor_inst.append_log(err_log)
+        if method != "log.print":
+            var err_log = "[MCP] ← ERROR %s: %s" % [method, result["error"]["message"]]
+            print(err_log)
+            project_editor_inst.append_log(err_log)
         return _error_response(id, result["error"]["code"], result["error"]["message"], result["error"].get("data"))
 
-    var ok_log = "[MCP] ← OK %s" % method
-    print(ok_log)
-    project_editor_inst.append_log(ok_log)
+    if method != "log.print":
+        var ok_log = "[MCP] ← OK %s" % method
+        print(ok_log)
+        project_editor_inst.append_log(ok_log)
     return _success_response(id, result.get("result", {}))
 
 func _route(method: String, params: Dictionary) -> Dictionary:
