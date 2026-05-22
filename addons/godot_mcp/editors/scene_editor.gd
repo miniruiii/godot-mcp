@@ -155,11 +155,11 @@ func duplicate_node(params: Dictionary) -> Dictionary:
     undo.create_action("Duplicate Node via MCP")
     undo.add_do_method(parent, "add_child", duplicated, true)
     undo.add_undo_method(parent, "remove_child", duplicated)
-    undo.add_do_method(duplicated, "set_owner", edited_root)
+    undo.add_do_method(duplicated, "set_owner", EditorInterface.get_edited_scene_root())
     undo.add_undo_method(duplicated, "set_owner", target)
     undo.commit_action()
 
-    return { "result": { "duplicated": true, "new_path": parent.get_path().to_string() + "/" + duplicated.name } }
+    return { "result": { "duplicated": true, "new_path": str(parent.get_path()) + "/" + duplicated.name } }
 
 func move_node(params: Dictionary) -> Dictionary:
     var node_path = params.get("node_path", "")

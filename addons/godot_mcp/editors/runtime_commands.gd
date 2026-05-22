@@ -211,7 +211,7 @@ func click_button_by_text(params: Dictionary) -> Dictionary:
 	if button == null:
 		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Button not found: %s" % button_text } }
 
-	button.pressed()
+	button.pressed.emit()
 	return { "result": { "clicked": true, "button_path": button.get_path() } }
 
 func _find_button_by_text_recursive(node: Node, text: String) -> Button:
@@ -243,7 +243,7 @@ func wait_for_node(params: Dictionary) -> Dictionary:
 		if node != null:
 			return { "result": { "found": true, "node_path": node_path } }
 		# Use create_timer for efficient non-busy waiting
-		await get_tree().create_timer(0.01).timeout
+		await Engine.get_main_loop().create_timer(0.01).timeout
 
 	return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found within timeout: %s" % node_path } }
 
@@ -373,7 +373,7 @@ func replay_recording(params: Dictionary) -> Dictionary:
 			var event = _parse_input_event(event_data)
 			if event:
 				Input.parse_input_event(event)
-		await get_tree().create_timer(0).timeout
+		await Engine.get_main_loop().create_timer(0).timeout
 
 	return { "result": { "replayed": true, "frame_count": data.size() } }
 
