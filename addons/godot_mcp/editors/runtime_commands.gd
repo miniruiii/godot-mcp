@@ -125,7 +125,11 @@ func execute_script(params: Dictionary) -> Dictionary:
 	if instance.has_method("_ready"):
 		instance._ready()
 
-	instance.free()
+	# RefCounted objects are auto-freed when ref_count reaches 0.
+	# Only Node-derived instances need explicit cleanup.
+	if instance is Node:
+		instance.queue_free()
+
 	return { "result": { "executed": true } }
 
 func find_nodes_by_script(params: Dictionary) -> Dictionary:
