@@ -26,6 +26,7 @@ func _find_game_node(path: String) -> Node:
 	return main_loop.root.get_node_or_null(NodePath(path))
 
 func get_tree(params: Dictionary) -> Dictionary:
+	print("[MCP] game.get_tree")
 	var main_loop = Engine.get_main_loop()
 	if main_loop == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
@@ -46,6 +47,7 @@ func _collect_runtime_nodes(node: Node, out: Array, path: String) -> void:
 		_collect_runtime_nodes(child, out, node_path)
 
 func get_node_properties(params: Dictionary) -> Dictionary:
+	print("[MCP] game.get_node_properties: node_path=%s" % params.get("node_path", ""))
 	var node_path = params.get("node_path", "")
 	var target = _find_game_node(node_path)
 	if target == null:
@@ -65,6 +67,7 @@ func get_node_properties(params: Dictionary) -> Dictionary:
 	} }
 
 func set_node_property(params: Dictionary) -> Dictionary:
+	print("[MCP] game.set_node_property: node_path=%s property=%s" % [params.get("node_path", ""), params.get("property", "")])
 	var node_path = params.get("node_path", "")
 	var property = params.get("property", "")
 	var value_str = params.get("value", "")
@@ -81,6 +84,7 @@ func set_node_property(params: Dictionary) -> Dictionary:
 	return { "result": { "updated": true, "property": property, "value": Utils.value_to_string(new_value) } }
 
 func execute_script(params: Dictionary) -> Dictionary:
+	print("[MCP] game.execute_script")
 	var code = params.get("code", "")
 	if code == "":
 		return { "error": { "code": ERR_MISSING_CODE, "message": "Missing code parameter" } }
@@ -100,6 +104,7 @@ func execute_script(params: Dictionary) -> Dictionary:
 	return { "result": { "executed": true } }
 
 func find_nodes_by_script(params: Dictionary) -> Dictionary:
+	print("[MCP] game.find_nodes_by_script: script_path=%s" % params.get("script_path", ""))
 	var main_loop = Engine.get_main_loop()
 	if main_loop == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
@@ -129,6 +134,7 @@ func _find_nodes_with_script_recursive(node: Node, target_script: Script, out: A
 		_find_nodes_with_script_recursive(child, target_script, out, child_path)
 
 func get_autoload(params: Dictionary) -> Dictionary:
+	print("[MCP] game.get_autoload: name=%s" % params.get("name", ""))
 	var name = params.get("name", "")
 	if name == "":
 		return { "error": { "code": ERR_MISSING_AUTOLOAD_NAME, "message": "Missing autoload name" } }
@@ -141,6 +147,7 @@ func get_autoload(params: Dictionary) -> Dictionary:
 	return { "result": { "name": name, "path": autoload_path } }
 
 func batch_get_properties(params: Dictionary) -> Dictionary:
+	print("[MCP] game.batch_get_properties: node_paths=%s" % params.get("node_paths", []))
 	var node_paths = params.get("node_paths", [])
 	if node_paths.size() == 0:
 		return { "error": { "code": ERR_MISSING_NODE_PATHS, "message": "Missing node_paths parameter" } }
@@ -161,6 +168,7 @@ func batch_get_properties(params: Dictionary) -> Dictionary:
 	return { "result": { "nodes": results } }
 
 func find_ui_elements(params: Dictionary) -> Dictionary:
+	print("[MCP] game.find_ui_elements: type=%s text=%s" % [params.get("type", ""), params.get("text", "")])
 	var main_loop = Engine.get_main_loop()
 	if main_loop == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
@@ -198,6 +206,7 @@ func _find_ui_elements_recursive(node: Node, search_text: String, control_type: 
 		_find_ui_elements_recursive(child, search_text, control_type, out, child_path)
 
 func click_button_by_text(params: Dictionary) -> Dictionary:
+	print("[MCP] game.click_button_by_text: text=%s" % params.get("text", ""))
 	var main_loop = Engine.get_main_loop()
 	if main_loop == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
@@ -229,6 +238,7 @@ func _find_button_by_text_recursive(node: Node, text: String) -> Button:
 	return null
 
 func wait_for_node(params: Dictionary) -> Dictionary:
+	print("[MCP] game.wait_for_node: node_path=%s timeout=%d" % [params.get("node_path", ""), params.get("timeout_ms", 5000)])
 	var node_path = params.get("node_path", "")
 	var timeout_ms = params.get("timeout_ms", 5000)
 
@@ -248,6 +258,7 @@ func wait_for_node(params: Dictionary) -> Dictionary:
 	return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Node not found within timeout: %s" % node_path } }
 
 func find_nearby_nodes(params: Dictionary) -> Dictionary:
+	print("[MCP] game.find_nearby_nodes: origin=%s max_distance=%s" % [params.get("origin_path", ""), params.get("max_distance", 100.0)])
 	var main_loop = Engine.get_main_loop()
 	if main_loop == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
@@ -284,6 +295,7 @@ func _find_nodes_by_distance_recursive(node: Node, origin: Vector2, max_dist: fl
 		_find_nodes_by_distance_recursive(child, origin, max_dist, out, child_path, origin_node)
 
 func navigate_to(params: Dictionary) -> Dictionary:
+	print("[MCP] game.navigate_to: node_path=%s target=%s" % [params.get("node_path", ""), params.get("target", "")])
 	var agent_path = params.get("node_path", "")
 	var target_pos_str = params.get("target", "")
 
@@ -305,6 +317,7 @@ func navigate_to(params: Dictionary) -> Dictionary:
 
 
 func get_game_node_property(params: Dictionary) -> Dictionary:
+	print("[MCP] game.get_game_node_property: node_path=%s property=%s" % [params.get("node_path", ""), params.get("property", "")])
 	var node_path = params.get("node_path", "")
 	var property = params.get("property", "")
 
@@ -319,6 +332,7 @@ func get_game_node_property(params: Dictionary) -> Dictionary:
 	return { "result": { "property": property, "value": Utils.value_to_string(val) } }
 
 func capture_frames(params: Dictionary) -> Dictionary:
+	print("[MCP] game.capture_frames: count=%d" % params.get("count", 1))
 	var count = params.get("count", 1)
 	if count < 1 or count > 100:
 		return { "error": { "code": ERR_INVALID_FRAME_COUNT, "message": "Frame count must be between 1 and 100" } }
@@ -332,6 +346,7 @@ func capture_frames(params: Dictionary) -> Dictionary:
 	return { "result": { "captured": count, "frames": images } }
 
 func monitor_properties(params: Dictionary) -> Dictionary:
+	print("[MCP] game.monitor_properties: node_path=%s properties=%s" % [params.get("node_path", ""), params.get("properties", [])])
 	var node_path = params.get("node_path", "")
 	var properties = params.get("properties", [])
 
@@ -352,17 +367,20 @@ var _recording_data = []
 var _is_recording = false
 
 func start_recording(params: Dictionary) -> Dictionary:
+	print("[MCP] game.start_recording")
 	_recording_data = []
 	_is_recording = true
 	return { "result": { "recording": true } }
 
 func stop_recording(params: Dictionary) -> Dictionary:
+	print("[MCP] game.stop_recording")
 	_is_recording = false
 	var frame_count = _recording_data.size()
 	_recording_data = []
 	return { "result": { "stopped": true, "frames_recorded": frame_count } }
 
 func replay_recording(params: Dictionary) -> Dictionary:
+	print("[MCP] game.replay_recording: frames=%d" % params.get("data", []).size())
 	var data = params.get("data", [])
 	if data.size() == 0:
 		return { "error": { "code": ERR_NO_RECORDING_DATA, "message": "No recording data provided" } }

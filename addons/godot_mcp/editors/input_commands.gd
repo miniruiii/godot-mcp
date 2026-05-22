@@ -9,6 +9,7 @@ const ERR_INVALID_EVENT = -32019
 const ERR_INVALID_EVENTS_ARRAY = -32020
 
 func simulate_key(params: Dictionary) -> Dictionary:
+	print("[MCP] input.simulate_key: keycode=%s pressed=%s" % [params.get("keycode", ""), params.get("pressed", true)])
 	var keycode = params.get("keycode", "")
 	if keycode == "":
 		return { "error": { "code": ERR_INVALID_KEYCODE, "message": "Missing keycode parameter" } }
@@ -32,6 +33,7 @@ func simulate_key(params: Dictionary) -> Dictionary:
 	return { "result": { "simulated": true, "keycode": keycode, "pressed": pressed } }
 
 func simulate_mouse_click(params: Dictionary) -> Dictionary:
+	print("[MCP] input.simulate_mouse_click: position=(%s,%s) button=%d pressed=%s" % [params.get("position", {}).get("x", 0), params.get("position", {}).get("y", 0), params.get("button", 1), params.get("pressed", true)])
 	var position = params.get("position", {})
 	if not position.has("x") or not position.has("y"):
 		return { "error": { "code": ERR_INVALID_POSITION, "message": "Missing position.x or position.y" } }
@@ -51,6 +53,7 @@ func simulate_mouse_click(params: Dictionary) -> Dictionary:
 	return { "result": { "simulated": true, "position": event.position, "button": button, "pressed": pressed } }
 
 func simulate_mouse_move(params: Dictionary) -> Dictionary:
+	print("[MCP] input.simulate_mouse_move: position=(%s,%s)" % [params.get("position", {}).get("x", 0), params.get("position", {}).get("y", 0)])
 	var position = params.get("position", {})
 	if not position.has("x") or not position.has("y"):
 		return { "error": { "code": ERR_INVALID_POSITION, "message": "Missing position.x or position.y" } }
@@ -62,6 +65,7 @@ func simulate_mouse_move(params: Dictionary) -> Dictionary:
 	return { "result": { "simulated": true, "position": event.position } }
 
 func simulate_action(params: Dictionary) -> Dictionary:
+	print("[MCP] input.simulate_action: action=%s pressed=%s" % [params.get("action", ""), params.get("pressed", true)])
 	var action = params.get("action", "")
 	if action == "":
 		return { "error": { "code": ERR_INVALID_ACTION, "message": "Missing action parameter" } }
@@ -76,6 +80,7 @@ func simulate_action(params: Dictionary) -> Dictionary:
 	return { "result": { "simulated": true, "action": action, "pressed": pressed } }
 
 func simulate_sequence(params: Dictionary) -> Dictionary:
+	print("[MCP] input.simulate_sequence: events=%d" % params.get("events", []).size())
 	var events = params.get("events", [])
 	if events.size() == 0:
 		return { "error": { "code": ERR_INVALID_EVENTS_ARRAY, "message": "Missing or empty events array" } }
@@ -90,6 +95,7 @@ func simulate_sequence(params: Dictionary) -> Dictionary:
 	return { "result": { "simulated": true, "count": simulated_count } }
 
 func get_input_actions(params: Dictionary) -> Dictionary:
+	print("[MCP] input.get_input_actions")
 	var actions = InputMap.get_actions()
 	var result = []
 
@@ -103,6 +109,7 @@ func get_input_actions(params: Dictionary) -> Dictionary:
 	return { "result": { "actions": result } }
 
 func set_input_action(params: Dictionary) -> Dictionary:
+	print("[MCP] input.set_input_action: action=%s" % params.get("action", ""))
 	var action = params.get("action", "")
 	if action == "":
 		return { "error": { "code": ERR_INVALID_ACTION, "message": "Missing action parameter" } }

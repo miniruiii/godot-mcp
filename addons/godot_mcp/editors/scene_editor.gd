@@ -3,6 +3,7 @@ extends RefCounted
 const Utils = preload("res://addons/godot_mcp/utils.gd")
 
 func get_tree(params: Dictionary) -> Dictionary:
+    print("[MCP] get_tree")
     var root = EditorInterface.get_edited_scene_root()
     if root == null:
         return { "error": { "code": -32000, "message": "No scene is currently open" } }
@@ -22,6 +23,7 @@ func _collect_nodes(node: Node, out: Array, path: String) -> void:
         _collect_nodes(child, out, node_path)
 
 func get_node(params: Dictionary) -> Dictionary:
+    print("[MCP] get_node: node_path=%s" % params.get("node_path", ""))
     var node_path = params.get("node_path", "")
     var target = _find_node_by_path(node_path)
     if target == null:
@@ -44,6 +46,7 @@ func add_node(params: Dictionary) -> Dictionary:
     var parent_path = params.get("parent_path", "")
     var node_type = params.get("node_type", "Node")
     var node_name = params.get("node_name", "")
+    print("[MCP] add_node: parent_path=%s node_type=%s node_name=%s" % [parent_path, node_type, node_name])
 
     var parent = _find_node_by_path(parent_path)
     if parent == null:
@@ -69,6 +72,7 @@ func add_node(params: Dictionary) -> Dictionary:
     return { "result": { "added": true, "node_path": parent_path + "/" + node_name } }
 
 func remove_node(params: Dictionary) -> Dictionary:
+    print("[MCP] remove_node: node_path=%s" % params.get("node_path", ""))
     var node_path = params.get("node_path", "")
     var target = _find_node_by_path(node_path)
     if target == null:
@@ -86,6 +90,7 @@ func remove_node(params: Dictionary) -> Dictionary:
     return { "result": { "removed": true } }
 
 func update_property(params: Dictionary) -> Dictionary:
+    print("[MCP] update_property: node_path=%s property=%s" % [params.get("node_path", ""), params.get("property", "")])
     var node_path = params.get("node_path", "")
     var property = params.get("property", "")
     var value_str = params.get("value", "")
@@ -110,12 +115,14 @@ func update_property(params: Dictionary) -> Dictionary:
     return { "result": { "updated": true, "property": property, "value": Utils.value_to_string(new_value) } }
 
 func save_scene(params: Dictionary) -> Dictionary:
+    print("[MCP] save_scene")
     var err = EditorInterface.save_scene()
     if err != OK:
         return { "error": { "code": -32004, "message": "Failed to save scene" } }
     return { "result": { "saved": true } }
 
 func open_scene(params: Dictionary) -> Dictionary:
+    print("[MCP] open_scene: scene_path=%s" % params.get("scene_path", ""))
     var scene_path = params.get("scene_path", "")
     if scene_path == "":
         return { "error": { "code": -32005, "message": "Missing scene_path" } }
@@ -135,6 +142,7 @@ func _find_node_by_path(path: String) -> Node:
     return root.get_node_or_null(NodePath(relative))
 
 func duplicate_node(params: Dictionary) -> Dictionary:
+    print("[MCP] duplicate_node: node_path=%s new_name=%s" % [params.get("node_path", ""), params.get("new_name", "")])
     var node_path = params.get("node_path", "")
     var new_name = params.get("new_name", "")
 
@@ -166,6 +174,7 @@ func duplicate_node(params: Dictionary) -> Dictionary:
     return { "result": { "duplicated": true, "new_path": str(parent.get_path()) + "/" + duplicated.name } }
 
 func move_node(params: Dictionary) -> Dictionary:
+    print("[MCP] move_node: node_path=%s new_parent=%s" % [params.get("node_path", ""), params.get("new_parent_path", "")])
     var node_path = params.get("node_path", "")
     var new_parent_path = params.get("new_parent_path", "")
 
@@ -196,6 +205,7 @@ func move_node(params: Dictionary) -> Dictionary:
     return { "result": { "moved": true, "node_path": node_path, "new_parent": new_parent_path } }
 
 func connect_signal(params: Dictionary) -> Dictionary:
+    print("[MCP] connect_signal: node_path=%s signal=%s target=%s method=%s" % [params.get("node_path", ""), params.get("signal", ""), params.get("target_path", ""), params.get("method", "")])
     var node_path = params.get("node_path", "")
     var signal_name = params.get("signal", "")
     var target_path = params.get("target_path", "")
@@ -227,6 +237,7 @@ func connect_signal(params: Dictionary) -> Dictionary:
     return { "result": { "connected": true } }
 
 func disconnect_signal(params: Dictionary) -> Dictionary:
+    print("[MCP] disconnect_signal: node_path=%s signal=%s target=%s method=%s" % [params.get("node_path", ""), params.get("signal", ""), params.get("target_path", ""), params.get("method", "")])
     var node_path = params.get("node_path", "")
     var signal_name = params.get("signal", "")
     var target_path = params.get("target_path", "")
@@ -258,6 +269,7 @@ func disconnect_signal(params: Dictionary) -> Dictionary:
     return { "result": { "disconnected": true } }
 
 func rename_node(params: Dictionary) -> Dictionary:
+    print("[MCP] rename_node: node_path=%s new_name=%s" % [params.get("node_path", ""), params.get("new_name", "")])
     var node_path = params.get("node_path", "")
     var new_name = params.get("new_name", "")
 
@@ -280,6 +292,7 @@ func rename_node(params: Dictionary) -> Dictionary:
     return { "result": { "renamed": true, "new_name": new_name } }
 
 func get_node_groups(params: Dictionary) -> Dictionary:
+    print("[MCP] get_node_groups: node_path=%s" % params.get("node_path", ""))
     var node_path = params.get("node_path", "")
     var target = _find_node_by_path(node_path)
     if target == null:
@@ -287,6 +300,7 @@ func get_node_groups(params: Dictionary) -> Dictionary:
     return { "result": { "groups": target.get_groups() } }
 
 func set_node_groups(params: Dictionary) -> Dictionary:
+    print("[MCP] set_node_groups: node_path=%s add=%s remove=%s" % [params.get("node_path", ""), params.get("add_to_groups", []), params.get("remove_from_groups", [])])
     var node_path = params.get("node_path", "")
     var add_to_groups = params.get("add_to_groups", [])
     var remove_from_groups = params.get("remove_from_groups", [])
@@ -304,6 +318,7 @@ func set_node_groups(params: Dictionary) -> Dictionary:
     return { "result": { "success": true } }
 
 func find_nodes_in_group(params: Dictionary) -> Dictionary:
+    print("[MCP] find_nodes_in_group: group=%s" % params.get("group", ""))
     var group = params.get("group", "")
     if group == "":
         return { "error": { "code": -32600, "message": "Missing group name" } }

@@ -1,6 +1,7 @@
 extends RefCounted
 
 func open_script(params: Dictionary) -> Dictionary:
+    print("[MCP] open_script: script_path=%s" % params.get("script_path", ""))
     var script_path = params.get("script_path", "")
     if script_path == "":
         return { "error": { "code": -32010, "message": "Missing script_path" } }
@@ -13,6 +14,7 @@ func open_script(params: Dictionary) -> Dictionary:
     return { "result": { "opened": true, "script_path": script_path } }
 
 func get_content(params: Dictionary) -> Dictionary:
+    print("[MCP] get_content: script_path=%s" % params.get("script_path", ""))
     var script_path = params.get("script_path", "")
     var script = load(script_path) as Script
     if script == null:
@@ -28,6 +30,7 @@ func get_content(params: Dictionary) -> Dictionary:
     }
 
 func get_open_scripts() -> Dictionary:
+    print("[MCP] get_open_scripts")
     var editor_interface = EditorInterface.get_script_editor()
     var open_scripts: Array = editor_interface.get_open_scripts()
     var result = []
