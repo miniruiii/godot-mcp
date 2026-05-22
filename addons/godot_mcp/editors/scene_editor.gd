@@ -192,7 +192,7 @@ func move_node(params: Dictionary) -> Dictionary:
 
 func connect_signal(params: Dictionary) -> Dictionary:
     var node_path = params.get("node_path", "")
-    var signal = params.get("signal", "")
+    var signal_name = params.get("signal", "")
     var target_path = params.get("target_path", "")
     var method = params.get("method", "")
 
@@ -204,7 +204,7 @@ func connect_signal(params: Dictionary) -> Dictionary:
     if target == null:
         return { "error": { "code": -32602, "message": "Target node not found: %s" % target_path } }
 
-    if signal == "":
+    if signal_name == "":
         return { "error": { "code": -32600, "message": "Missing signal name" } }
 
     if method == "":
@@ -214,15 +214,15 @@ func connect_signal(params: Dictionary) -> Dictionary:
 
     var undo = EditorInterface.get_editor_undo_redo()
     undo.create_action("Connect Signal via MCP")
-    undo.add_do_method(source, "connect", signal, callable)
-    undo.add_undo_method(source, "disconnect", signal, callable)
+    undo.add_do_method(source, "connect", signal_name, callable)
+    undo.add_undo_method(source, "disconnect", signal_name, callable)
     undo.commit_action()
 
     return { "result": { "connected": true } }
 
 func disconnect_signal(params: Dictionary) -> Dictionary:
     var node_path = params.get("node_path", "")
-    var signal = params.get("signal", "")
+    var signal_name = params.get("signal", "")
     var target_path = params.get("target_path", "")
     var method = params.get("method", "")
 
@@ -234,7 +234,7 @@ func disconnect_signal(params: Dictionary) -> Dictionary:
     if target == null:
         return { "error": { "code": -32602, "message": "Target node not found: %s" % target_path } }
 
-    if signal == "":
+    if signal_name == "":
         return { "error": { "code": -32600, "message": "Missing signal name" } }
 
     if method == "":
@@ -244,8 +244,8 @@ func disconnect_signal(params: Dictionary) -> Dictionary:
 
     var undo = EditorInterface.get_editor_undo_redo()
     undo.create_action("Disconnect Signal via MCP")
-    undo.add_do_method(source, "disconnect", signal, callable)
-    undo.add_undo_method(source, "connect", signal, callable)
+    undo.add_do_method(source, "disconnect", signal_name, callable)
+    undo.add_undo_method(source, "connect", signal_name, callable)
     undo.commit_action()
 
     return { "result": { "disconnected": true } }

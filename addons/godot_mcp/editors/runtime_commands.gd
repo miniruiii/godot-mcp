@@ -291,7 +291,7 @@ func navigate_to(params: Dictionary) -> Dictionary:
 	if agent == null:
 		return { "error": { "code": ERR_NODE_NOT_FOUND, "message": "Navigation agent not found: %s" % agent_path } }
 
-	if not agent has("target_position"):
+	if not agent.has("target_position"):
 		return { "error": { "code": ERR_NOT_NAVIGATION_AGENT, "message": "Node is not a NavigationAgent" } }
 
 	var parts = target_pos_str.strip_edges().split(",")
