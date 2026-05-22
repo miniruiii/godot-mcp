@@ -237,8 +237,8 @@ export async function getNodeGroups(args: GetNodeGroupsArgs, projectRoot: string
     return { groups: [] };
   }
   validateRequired(args as unknown as Record<string, unknown>, 'scene_path', 'node_path');
-  const result = await bridge.call('node.get_groups', { node_path: args.node_path } as Record<string, unknown>);
-  return { groups: (result as string[]) || [] };
+  const result = await bridge.call('node.get_groups', { node_path: args.node_path } as Record<string, unknown>) as { groups?: string[] };
+  return { groups: result?.groups ?? [] };
 }
 
 export interface SetNodeGroupsArgs {
@@ -275,8 +275,8 @@ export async function findNodesInGroup(args: FindNodesInGroupArgs, projectRoot: 
     return { node_paths: [] };
   }
   validateRequired(args as unknown as Record<string, unknown>, 'group');
-  const result = await bridge.call('node.find_in_group', { group: args.group } as Record<string, unknown>);
-  return { node_paths: (result as string[]) || [] };
+  const result = await bridge.call('node.find_in_group', { group: args.group } as Record<string, unknown>) as { node_paths?: string[] };
+  return { node_paths: result?.node_paths ?? [] };
 }
 
 export interface RenameNodeArgs {

@@ -225,6 +225,9 @@ func connect_signal(params: Dictionary) -> Dictionary:
     if method == "":
         return { "error": { "code": -32600, "message": "Missing method name" } }
 
+    if not source.has_signal(signal_name):
+        return { "error": { "code": -32602, "message": "Signal '%s' not found on node: %s" % [signal_name, node_path] } }
+
     var callable = Callable(target, method)
 
     var undo = EditorInterface.get_editor_undo_redo()

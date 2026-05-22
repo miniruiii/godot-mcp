@@ -99,14 +99,10 @@ func simulate_sequence(params: Dictionary) -> Dictionary:
 func get_input_actions(params: Dictionary) -> Dictionary:
 	print("[MCP] input.get_input_actions")
 	var actions = InputMap.get_actions()
-	var result = []
+	var result: Array[String] = []
 
 	for action in actions:
-		var events = InputMap.action_get_events(action)
-		result.append({
-			"action": action,
-			"event_count": events.size(),
-		})
+		result.append(action)
 
 	return { "result": { "actions": result } }
 

@@ -37,7 +37,9 @@ func _process(_delta):
 func _on_message_received(peer_id: int, message: String):
     var response = await rpc_handler.handle(message)
     if response != "":
-        ws_server.send_to(peer_id, response)
+        var err = ws_server.send_to(peer_id, response)
+        if err != OK:
+            push_error("Godot MCP: Failed to send response to peer %d" % peer_id)
 
 func _on_client_connected(peer_id: int):
     var msg = "Godot MCP: Client connected (%d)" % peer_id

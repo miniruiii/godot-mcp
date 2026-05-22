@@ -390,7 +390,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       description: 'Simulate a keyboard key press or release',
       inputSchema: {
         type: 'object',
-        properties: { keycode: { type: 'string' }, pressed: { type: 'boolean' }, modifiers: { type: 'array', items: { type: 'string' } } },
+        properties: { keycode: { type: 'string' }, pressed: { type: 'boolean' }, modifiers: { type: 'object', properties: { meta: { type: 'boolean' }, ctrl: { type: 'boolean' }, shift: { type: 'boolean' }, alt: { type: 'boolean' } } } },
         required: ['keycode', 'pressed'],
       },
       handler: (args: Record<string, unknown>) => simulateKey(args as any, bridge),

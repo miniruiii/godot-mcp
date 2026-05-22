@@ -292,8 +292,8 @@ func find_nearby_nodes(params: Dictionary) -> Dictionary:
 	if main_loop == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
 
-	var origin_path = params.get("origin_path", "")
-	var max_distance = params.get("max_distance", 100.0)
+	var origin_path = params.get("origin_path", params.get("node_path", ""))
+	var max_distance = params.get("max_distance", params.get("distance", 100.0))
 
 	var origin = _find_game_node(origin_path)
 	if origin == null:
@@ -307,6 +307,8 @@ func find_nearby_nodes(params: Dictionary) -> Dictionary:
 
 func _find_nodes_by_distance_recursive(node: Node, origin: Vector2, max_dist: float, out: Array, path: String, origin_node: Node) -> void:
 	if node == origin_node:
+		return
+	if not node is CanvasItem:
 		return
 
 	var dist = node.global_position.distance_to(origin)
@@ -341,7 +343,6 @@ func navigate_to(params: Dictionary) -> Dictionary:
 
 	var target = Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
 	agent.target_position = target
-	agent.navigate()
 	return { "result": { "navigating": true, "target": target_pos_str } }
 
 
@@ -361,18 +362,25 @@ func get_game_node_property(params: Dictionary) -> Dictionary:
 	return { "result": { "property": property, "value": Utils.value_to_string(val) } }
 
 func capture_frames(params: Dictionary) -> Dictionary:
-	print("[MCP] game.capture_frames: count=%d" % params.get("count", 1))
-	var count = params.get("count", 1)
-	if count < 1 or count > 100:
-		return { "error": { "code": ERR_INVALID_FRAME_COUNT, "message": "Frame count must be between 1 and 100" } }
+	print("[MCP] game.capture_frames")
 
-	var viewport = Engine.get_main_loop().root.get_viewport()
-	var images = []
-	for i in range(count):
-		var img = viewport.get_texture().get_image()
-		images.append(img.get_data())
+	var main_loop = Engine.get_main_loop()
+	if main_loop == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No main loop available" } }
 
-	return { "result": { "captured": count, "frames": images } }
+	var viewport = main_loop.root.get_viewport()
+	if viewport == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "No viewport available" } }
+
+	var img = viewport.get_texture().get_image()
+	if img == null:
+		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "Failed to capture image" } }
+
+	# Save as PNG to reduce size, then encode as base64 for JSON transport
+	var png_buffer = img.save_png_to_buffer()
+	var base64_data = Marshalls.raw_to_base64(png_buffer)
+
+	return { "result": { "captured": 1, "format": "png", "data": base64_data } }
 
 func monitor_properties(params: Dictionary) -> Dictionary:
 	print("[MCP] game.monitor_properties: node_path=%s properties=%s" % [params.get("node_path", ""), params.get("properties", [])])
@@ -428,7 +436,7 @@ func _parse_input_event(event_data: Dictionary) -> InputEvent:
 	var event_type = event_data.get("type", "")
 	if event_type == "key":
 		var event = InputEventKey.new()
-		event.scancode = event_data.get("scancode", 0)
+		event.keycode = event_data.get("keycode", 0)
 		event.pressed = event_data.get("pressed", false)
 		return event
 	elif event_type == "mouse_button":

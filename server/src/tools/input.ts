@@ -7,7 +7,12 @@ import type { GodotBridge } from '../godot-bridge.js';
 export interface SimulateKeyArgs {
   keycode: string;
   pressed: boolean;
-  modifiers?: string[];
+  modifiers?: {
+    meta?: boolean;
+    ctrl?: boolean;
+    shift?: boolean;
+    alt?: boolean;
+  };
 }
 
 export interface SimulateKeyResult {
@@ -22,7 +27,7 @@ export async function simulateKey(args: SimulateKeyArgs, bridge: GodotBridge): P
   await bridge.call('input.simulate_key', {
     keycode: args.keycode,
     pressed: args.pressed,
-    modifiers: args.modifiers ?? [],
+    modifiers: args.modifiers ?? {},
   });
   return { success: true, message: 'Key simulated via Godot editor.' };
 }

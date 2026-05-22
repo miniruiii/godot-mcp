@@ -96,9 +96,12 @@ export class GodotBridge {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    if (this.ws) {
-      this.ws.terminate();
-      this.ws = null;
+    // Null out ws BEFORE terminate() to prevent close handler from scheduling reconnect
+    const ws = this.ws;
+    this.ws = null;
+    this.connectingPromise = null;
+    if (ws) {
+      ws.terminate();
     }
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer);
@@ -127,7 +130,13 @@ export class GodotBridge {
       }, 30000);
 
       this.pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
-      this.ws!.send(JSON.stringify(request));
+      try {
+        this.ws!.send(JSON.stringify(request));
+      } catch (err) {
+        clearTimeout(timer);
+        this.pending.delete(id);
+        reject(new Error(`Failed to send request: ${err instanceof Error ? err.message : String(err)}`));
+      }
     });
   }
 
