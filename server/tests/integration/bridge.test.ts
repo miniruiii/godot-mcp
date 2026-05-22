@@ -18,6 +18,8 @@ describe('MCP bridge integration', () => {
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { version: '1.0.0', godot_version: '4.6.2' } }));
         } else if (msg.method === 'scene.get_tree') {
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { nodes: [{ name: 'Main', type: 'Node2D' }] } }));
+        } else if (msg.method === 'scene.open') {
+          ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { opened: true } }));
         } else if (msg.method === 'scene.save') {
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { saved: true } }));
         } else if (msg.method === 'project.run') {
@@ -39,10 +41,10 @@ describe('MCP bridge integration', () => {
     expect(bridge.getGodotVersion()).toBe('4.6.2');
   });
 
-  it('has 19 tools registered', () => {
+  it('has 52 tools registered', () => {
     const config = loadConfig('nonexistent.json');
     const tools = buildToolRegistry(config, bridge);
-    expect(tools.length).toBe(19);
+    expect(tools.length).toBe(52);
   });
 
   it('save_scene succeeds when bridge is connected', async () => {

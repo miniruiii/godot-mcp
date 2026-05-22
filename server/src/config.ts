@@ -8,6 +8,7 @@ export interface Config {
   mode: RunMode;
   project_path: string;
   log_level: string;
+  log_max_param_length: number;
 }
 
 const DEFAULTS: Config = {
@@ -15,6 +16,7 @@ const DEFAULTS: Config = {
   mode: 'full',
   project_path: './',
   log_level: 'info',
+  log_max_param_length: 0,
 };
 
 const ALLOWED_MODES: RunMode[] = ['full', 'lite', 'minimal'];
@@ -44,11 +46,18 @@ export function loadConfig(path: string): Config {
   const log_level = envOrFile('GODOT_MCP_LOG_LEVEL', fileConfig.log_level, DEFAULTS.log_level);
   const validatedLogLevel = ALLOWED_LOG_LEVELS.includes(log_level as string) ? (log_level as string) : DEFAULTS.log_level;
 
+  const rawMaxLen = envOrFile('GODOT_MCP_LOG_MAX_PARAM_LENGTH', fileConfig.log_max_param_length, DEFAULTS.log_max_param_length);
+  let log_max_param_length = parseInt(rawMaxLen.toString(), 10);
+  if (isNaN(log_max_param_length) || log_max_param_length < 0) {
+    log_max_param_length = DEFAULTS.log_max_param_length;
+  }
+
   return {
     port,
     mode: validatedMode,
     project_path: String(envOrFile('GODOT_MCP_PROJECT_PATH', fileConfig.project_path, DEFAULTS.project_path)),
     log_level: validatedLogLevel,
+    log_max_param_length,
   };
 }
 

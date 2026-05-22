@@ -104,16 +104,17 @@ export interface SaveSceneArgs {
 
 export interface SaveSceneResult {
   saved: boolean;
+  offline: boolean;
   message: string;
 }
 
 export async function saveScene(args: SaveSceneArgs, projectRoot: string, bridge: GodotBridge): Promise<SaveSceneResult> {
   if (!bridge.isConnected) {
-    return { saved: false, message: 'save_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
+    return { saved: false, offline: true, message: 'save_scene requires Godot editor to be running with the Godot MCP plugin enabled.' };
   }
   await bridge.call('scene.open', { scene_path: args.scene_path } as Record<string, unknown>);
   await bridge.call('scene.save', { scene_path: args.scene_path } as Record<string, unknown>);
-  return { saved: true, message: 'Scene saved via Godot editor.' };
+  return { saved: true, offline: false, message: 'Scene saved via Godot editor.' };
 }
 
 export interface OpenSceneArgs {

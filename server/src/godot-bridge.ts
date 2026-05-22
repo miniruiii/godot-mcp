@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { setLogBridge } from './tools/log.js';
 
 interface PendingRequest {
   resolve: (value: unknown) => void;
@@ -15,6 +16,7 @@ export class GodotBridge {
   private url: string;
   private version = '1.0.0';
   private godotVersion: string | null = null;
+  private connectingPromise: Promise<void> | null = null;
 
   constructor(port: number = 6505) {
     this.url = `ws://127.0.0.1:${port}`;
@@ -37,36 +39,42 @@ export class GodotBridge {
   }
 
   async connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.isConnected) {
-        resolve();
-        return;
-      }
+    if (this.isConnected) {
+      return;
+    }
+    if (this.connectingPromise) {
+      return this.connectingPromise;
+    }
 
+    this.connectingPromise = new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.url);
+        const ws = new WebSocket(this.url);
+        this.ws = ws;
 
-        this.ws.on('open', async () => {
+        ws.on('open', async () => {
           this.reconnectDelay = 1000;
           try {
             const result = await this.call('handshake', {}) as { version: string; godot_version: string };
             this.godotVersion = result.godot_version;
+            setLogBridge(this);
           } catch {
             // Handshake optional for backward compat
           }
           resolve();
         });
 
-        this.ws.on('message', (data) => {
+        ws.on('message', (data) => {
           this.handleMessage(data.toString());
         });
 
-        this.ws.on('close', () => {
-          this.ws = null;
-          this.scheduleReconnect();
+        ws.on('close', () => {
+          if (this.ws === ws) {
+            this.ws = null;
+            this.scheduleReconnect();
+          }
         });
 
-        this.ws.on('error', (err) => {
+        ws.on('error', (err) => {
           if (!this.isConnected) {
             reject(err);
           }
@@ -75,6 +83,12 @@ export class GodotBridge {
         reject(err);
       }
     });
+
+    try {
+      await this.connectingPromise;
+    } finally {
+      this.connectingPromise = null;
+    }
   }
 
   disconnect(): void {
@@ -82,9 +96,12 @@ export class GodotBridge {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    if (this.ws) {
-      this.ws.terminate();
-      this.ws = null;
+    // Null out ws BEFORE terminate() to prevent close handler from scheduling reconnect
+    const ws = this.ws;
+    this.ws = null;
+    this.connectingPromise = null;
+    if (ws) {
+      ws.terminate();
     }
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer);
@@ -113,7 +130,13 @@ export class GodotBridge {
       }, 30000);
 
       this.pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
-      this.ws!.send(JSON.stringify(request));
+      try {
+        this.ws!.send(JSON.stringify(request));
+      } catch (err) {
+        clearTimeout(timer);
+        this.pending.delete(id);
+        reject(new Error(`Failed to send request: ${err instanceof Error ? err.message : String(err)}`));
+      }
     });
   }
 
@@ -151,7 +174,7 @@ export class GodotBridge {
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectTimer) return;
+    if (this.reconnectTimer || this.connectingPromise) return;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect().catch(() => {
