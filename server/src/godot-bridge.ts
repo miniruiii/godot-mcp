@@ -15,6 +15,7 @@ export class GodotBridge {
   private url: string;
   private version = '1.0.0';
   private godotVersion: string | null = null;
+  private connectingPromise: Promise<void> | null = null;
 
   constructor(port: number = 6505) {
     this.url = `ws://127.0.0.1:${port}`;
@@ -37,12 +38,14 @@ export class GodotBridge {
   }
 
   async connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.isConnected) {
-        resolve();
-        return;
-      }
+    if (this.isConnected) {
+      return;
+    }
+    if (this.connectingPromise) {
+      return this.connectingPromise;
+    }
 
+    this.connectingPromise = new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url);
 
@@ -75,6 +78,12 @@ export class GodotBridge {
         reject(err);
       }
     });
+
+    try {
+      await this.connectingPromise;
+    } finally {
+      this.connectingPromise = null;
+    }
   }
 
   disconnect(): void {
@@ -151,7 +160,7 @@ export class GodotBridge {
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectTimer) return;
+    if (this.reconnectTimer || this.connectingPromise) return;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect().catch(() => {
