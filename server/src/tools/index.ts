@@ -1,5 +1,6 @@
 import type { GodotBridge } from '../godot-bridge.js';
 import type { Config } from '../config.js';
+import { mcpLog, formatArgs } from './log.js';
 import { readFileTool, writeFileTool } from './file.js';
 import { listProjectFiles, readProjectSettings, getProjectInfo } from './project.js';
 import { readScene, createScene, saveScene, openScene } from './scene.js';
@@ -31,7 +32,7 @@ export interface ToolDefinition {
 export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefinition[] {
   const projectRoot = config.project_path;
 
-  return [
+  const tools = [
     {
       name: 'list_project_files',
       description: 'List all files in the Godot project. Optional filter by extension.',
@@ -39,7 +40,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { extension: { type: 'string' } },
       },
-      handler: (args) => listProjectFiles(args, projectRoot),
+      handler: (args: Record<string, unknown>) => listProjectFiles(args, projectRoot),
     },
     {
       name: 'read_project_settings',
@@ -61,7 +62,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' } },
         required: ['scene_path'],
       },
-      handler: (args) => readScene(args as { scene_path: string }, projectRoot),
+      handler: (args: Record<string, unknown>) => readScene(args as { scene_path: string }, projectRoot),
     },
     {
       name: 'create_scene',
@@ -71,7 +72,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, root_type: { type: 'string' }, root_name: { type: 'string' } },
         required: ['scene_path', 'root_type', 'root_name'],
       },
-      handler: (args) => createScene(args as { scene_path: string; root_type: string; root_name: string }, projectRoot),
+      handler: (args: Record<string, unknown>) => createScene(args as { scene_path: string; root_type: string; root_name: string }, projectRoot),
     },
     {
       name: 'save_scene',
@@ -81,7 +82,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' } },
         required: ['scene_path'],
       },
-      handler: (args) => saveScene(args as { scene_path: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => saveScene(args as { scene_path: string }, projectRoot, bridge),
     },
     {
       name: 'open_scene',
@@ -91,7 +92,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' } },
         required: ['scene_path'],
       },
-      handler: (args) => openScene(args as { scene_path: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => openScene(args as { scene_path: string }, projectRoot, bridge),
     },
     {
       name: 'get_scene_tree',
@@ -101,7 +102,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' } },
         required: ['scene_path'],
       },
-      handler: (args) => getSceneTree(args as { scene_path: string }, projectRoot, bridge.isConnected),
+      handler: (args: Record<string, unknown>) => getSceneTree(args as { scene_path: string }, projectRoot, bridge.isConnected),
     },
     {
       name: 'get_node',
@@ -111,7 +112,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
         required: ['scene_path', 'node_path'],
       },
-      handler: (args) => getNode(args as { scene_path: string; node_path: string }, projectRoot, bridge.isConnected),
+      handler: (args: Record<string, unknown>) => getNode(args as { scene_path: string; node_path: string }, projectRoot, bridge.isConnected),
     },
     {
       name: 'add_node',
@@ -121,7 +122,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, parent_path: { type: 'string' }, node_type: { type: 'string' }, node_name: { type: 'string' } },
         required: ['scene_path', 'parent_path', 'node_type', 'node_name'],
       },
-      handler: (args) => addNode(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => addNode(args as any, projectRoot, bridge),
     },
     {
       name: 'remove_node',
@@ -131,7 +132,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
         required: ['scene_path', 'node_path'],
       },
-      handler: (args) => removeNode(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => removeNode(args as any, projectRoot, bridge),
     },
     {
       name: 'update_property',
@@ -141,7 +142,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, property: { type: 'string' }, value: { type: 'string' } },
         required: ['scene_path', 'node_path', 'property', 'value'],
       },
-      handler: (args) => updateProperty(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => updateProperty(args as any, projectRoot, bridge),
     },
     {
       name: 'create_script',
@@ -151,7 +152,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { script_path: { type: 'string' }, extends_type: { type: 'string' }, template: { type: 'string' } },
         required: ['script_path'],
       },
-      handler: (args) => createScript(args as any, projectRoot),
+      handler: (args: Record<string, unknown>) => createScript(args as any, projectRoot),
     },
     {
       name: 'read_script',
@@ -161,7 +162,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { script_path: { type: 'string' } },
         required: ['script_path'],
       },
-      handler: (args) => readScript(args as any, projectRoot),
+      handler: (args: Record<string, unknown>) => readScript(args as any, projectRoot),
     },
     {
       name: 'edit_script',
@@ -171,7 +172,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { script_path: { type: 'string' }, replacement: { type: 'string' }, start_line: { type: 'number' }, end_line: { type: 'number' } },
         required: ['script_path', 'replacement'],
       },
-      handler: (args) => editScript(args as any, projectRoot),
+      handler: (args: Record<string, unknown>) => editScript(args as any, projectRoot),
     },
     {
       name: 'run_project',
@@ -180,7 +181,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { scene_path: { type: 'string' } },
       },
-      handler: (args) => runProject(args as any, bridge),
+      handler: (args: Record<string, unknown>) => runProject(args as any, bridge),
     },
     {
       name: 'get_output_log',
@@ -189,7 +190,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { lines: { type: 'number' } },
       },
-      handler: (args) => getOutputLog(args as any, bridge),
+      handler: (args: Record<string, unknown>) => getOutputLog(args as any, bridge),
     },
     {
       name: 'read_file',
@@ -199,7 +200,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { path: { type: 'string' } },
         required: ['path'],
       },
-      handler: (args) => readFileTool(args as any, projectRoot),
+      handler: (args: Record<string, unknown>) => readFileTool(args as any, projectRoot),
     },
     {
       name: 'write_file',
@@ -209,7 +210,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { path: { type: 'string' }, content: { type: 'string' } },
         required: ['path', 'content'],
       },
-      handler: (args) => writeFileTool(args as any, projectRoot),
+      handler: (args: Record<string, unknown>) => writeFileTool(args as any, projectRoot),
     },
     // Runtime tools (19)
     {
@@ -226,7 +227,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' } },
         required: ['node_path'],
       },
-      handler: (args) => getGameNodeProperties(args as { node_path: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => getGameNodeProperties(args as { node_path: string }, projectRoot, bridge),
     },
     {
       name: 'set_game_node_property',
@@ -236,7 +237,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' }, property: { type: 'string' }, value: { type: 'string' } },
         required: ['node_path', 'property', 'value'],
       },
-      handler: (args) => setGameNodeProperty(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => setGameNodeProperty(args as any, projectRoot, bridge),
     },
     {
       name: 'execute_game_script',
@@ -246,7 +247,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { code: { type: 'string' } },
         required: ['code'],
       },
-      handler: (args) => executeGameScript(args as { code: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => executeGameScript(args as { code: string }, projectRoot, bridge),
     },
     {
       name: 'find_nodes_by_script',
@@ -256,7 +257,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { script_path: { type: 'string' } },
         required: ['script_path'],
       },
-      handler: (args) => findNodesByScript(args as { script_path: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => findNodesByScript(args as { script_path: string }, projectRoot, bridge),
     },
     {
       name: 'get_autoload',
@@ -266,7 +267,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { name: { type: 'string' } },
         required: ['name'],
       },
-      handler: (args) => getAutoload(args as { name: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => getAutoload(args as { name: string }, projectRoot, bridge),
     },
     {
       name: 'batch_get_properties',
@@ -276,7 +277,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_paths: { type: 'array', items: { type: 'string' } } },
         required: ['node_paths'],
       },
-      handler: (args) => batchGetProperties(args as { node_paths: string[] }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => batchGetProperties(args as { node_paths: string[] }, projectRoot, bridge),
     },
     {
       name: 'find_ui_elements',
@@ -285,7 +286,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { type: { type: 'string' }, text: { type: 'string' } },
       },
-      handler: (args) => findUiElements(args as { type?: string; text?: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => findUiElements(args as { type?: string; text?: string }, projectRoot, bridge),
     },
     {
       name: 'click_button_by_text',
@@ -295,7 +296,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { text: { type: 'string' } },
         required: ['text'],
       },
-      handler: (args) => clickButtonByText(args as { text: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => clickButtonByText(args as { text: string }, projectRoot, bridge),
     },
     {
       name: 'wait_for_node',
@@ -305,7 +306,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' }, timeout_ms: { type: 'number' } },
         required: ['node_path'],
       },
-      handler: (args) => waitForNode(args as { node_path: string; timeout_ms?: number }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => waitForNode(args as { node_path: string; timeout_ms?: number }, projectRoot, bridge),
     },
     {
       name: 'find_nearby_nodes',
@@ -315,7 +316,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' }, distance: { type: 'number' } },
         required: ['node_path'],
       },
-      handler: (args) => findNearbyNodes(args as { node_path: string; distance?: number }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => findNearbyNodes(args as { node_path: string; distance?: number }, projectRoot, bridge),
     },
     {
       name: 'navigate_to',
@@ -325,7 +326,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' }, target: { type: 'string' } },
         required: ['node_path', 'target'],
       },
-      handler: (args) => navigateTo(args as { node_path: string; target: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => navigateTo(args as { node_path: string; target: string }, projectRoot, bridge),
     },
     {
       name: 'get_game_node_property',
@@ -335,7 +336,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' }, property: { type: 'string' } },
         required: ['node_path', 'property'],
       },
-      handler: (args) => getGameNodeProperty(args as { node_path: string; property: string }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => getGameNodeProperty(args as { node_path: string; property: string }, projectRoot, bridge),
     },
     {
       name: 'capture_frames',
@@ -344,7 +345,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         type: 'object',
         properties: { count: { type: 'number' } },
       },
-      handler: (args) => captureFrames(args as { count?: number }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => captureFrames(args as { count?: number }, projectRoot, bridge),
     },
     {
       name: 'monitor_properties',
@@ -354,7 +355,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { node_path: { type: 'string' }, properties: { type: 'array', items: { type: 'string' } } },
         required: ['node_path', 'properties'],
       },
-      handler: (args) => monitorProperties(args as { node_path: string; properties: string[] }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => monitorProperties(args as { node_path: string; properties: string[] }, projectRoot, bridge),
     },
     {
       name: 'start_recording',
@@ -376,7 +377,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { data: { type: 'object' } },
         required: ['data'],
       },
-      handler: (args) => replayRecording(args as { data: unknown }, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => replayRecording(args as { data: unknown }, projectRoot, bridge),
     },
     // Input tools (7)
     {
@@ -387,7 +388,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { keycode: { type: 'string' }, pressed: { type: 'boolean' }, modifiers: { type: 'array', items: { type: 'string' } } },
         required: ['keycode', 'pressed'],
       },
-      handler: (args) => simulateKey(args as any, bridge),
+      handler: (args: Record<string, unknown>) => simulateKey(args as any, bridge),
     },
     {
       name: 'simulate_mouse_click',
@@ -397,7 +398,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } }, button: { type: 'number' }, pressed: { type: 'boolean' } },
         required: ['position', 'button', 'pressed'],
       },
-      handler: (args) => simulateMouseClick(args as any, bridge),
+      handler: (args: Record<string, unknown>) => simulateMouseClick(args as any, bridge),
     },
     {
       name: 'simulate_mouse_move',
@@ -407,7 +408,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { position: { type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } } } },
         required: ['position'],
       },
-      handler: (args) => simulateMouseMove(args as any, bridge),
+      handler: (args: Record<string, unknown>) => simulateMouseMove(args as any, bridge),
     },
     {
       name: 'simulate_action',
@@ -417,7 +418,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { action: { type: 'string' }, pressed: { type: 'boolean' } },
         required: ['action', 'pressed'],
       },
-      handler: (args) => simulateAction(args as any, bridge),
+      handler: (args: Record<string, unknown>) => simulateAction(args as any, bridge),
     },
     {
       name: 'simulate_sequence',
@@ -427,7 +428,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { events: { type: 'array', items: { type: 'object' } } },
         required: ['events'],
       },
-      handler: (args) => simulateSequence(args as any, bridge),
+      handler: (args: Record<string, unknown>) => simulateSequence(args as any, bridge),
     },
     {
       name: 'get_input_actions',
@@ -443,7 +444,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { action: { type: 'string' }, event: { type: 'object' } },
         required: ['action', 'event'],
       },
-      handler: (args) => setInputAction(args as any, bridge),
+      handler: (args: Record<string, unknown>) => setInputAction(args as any, bridge),
     },
     // Node tools (8)
     {
@@ -454,7 +455,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
         required: ['scene_path', 'node_path', 'new_name'],
       },
-      handler: (args) => duplicateNode(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => duplicateNode(args as any, projectRoot, bridge),
     },
     {
       name: 'move_node',
@@ -464,7 +465,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_parent_path: { type: 'string' } },
         required: ['scene_path', 'node_path', 'new_parent_path'],
       },
-      handler: (args) => moveNode(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => moveNode(args as any, projectRoot, bridge),
     },
     {
       name: 'connect_signal',
@@ -474,7 +475,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
         required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
       },
-      handler: (args) => connectSignal(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => connectSignal(args as any, projectRoot, bridge),
     },
     {
       name: 'disconnect_signal',
@@ -484,7 +485,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
         required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
       },
-      handler: (args) => disconnectSignal(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => disconnectSignal(args as any, projectRoot, bridge),
     },
     {
       name: 'get_node_groups',
@@ -494,7 +495,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
         required: ['scene_path', 'node_path'],
       },
-      handler: (args) => getNodeGroups(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => getNodeGroups(args as any, projectRoot, bridge),
     },
     {
       name: 'set_node_groups',
@@ -504,7 +505,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, add_to_groups: { type: 'array', items: { type: 'string' } }, remove_from_groups: { type: 'array', items: { type: 'string' } } },
         required: ['scene_path', 'node_path'],
       },
-      handler: (args) => setNodeGroups(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => setNodeGroups(args as any, projectRoot, bridge),
     },
     {
       name: 'find_nodes_in_group',
@@ -514,7 +515,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { group: { type: 'string' } },
         required: ['group'],
       },
-      handler: (args) => findNodesInGroup(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => findNodesInGroup(args as any, projectRoot, bridge),
     },
     {
       name: 'rename_node',
@@ -524,7 +525,27 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
         required: ['scene_path', 'node_path', 'new_name'],
       },
-      handler: (args) => renameNode(args as any, projectRoot, bridge),
+      handler: (args: Record<string, unknown>) => renameNode(args as any, projectRoot, bridge),
     },
   ];
+
+  return tools.map((tool) => ({
+    ...tool,
+    handler: async (args: Record<string, unknown>) => {
+      const startTime = Date.now();
+      const paramStr = formatArgs(args, config.log_max_param_length);
+      await mcpLog(`${tool.name} → ${paramStr}`, 'debug');
+      try {
+        const result = await tool.handler(args);
+        const elapsed = Date.now() - startTime;
+        await mcpLog(`${tool.name} ← OK (${elapsed}ms)`, 'debug');
+        return result;
+      } catch (err) {
+        const elapsed = Date.now() - startTime;
+        const msg = err instanceof Error ? err.message : String(err);
+        await mcpLog(`${tool.name} ← ERROR: ${msg} (${elapsed}ms)`, 'debug');
+        throw err;
+      }
+    },
+  }));
 }

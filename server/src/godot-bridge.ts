@@ -1,4 +1,5 @@
 import WebSocket from 'ws';
+import { setLogBridge } from './tools/log.js';
 
 interface PendingRequest {
   resolve: (value: unknown) => void;
@@ -55,6 +56,7 @@ export class GodotBridge {
           try {
             const result = await this.call('handshake', {}) as { version: string; godot_version: string };
             this.godotVersion = result.godot_version;
+            setLogBridge(this);
           } catch {
             // Handshake optional for backward compat
           }
