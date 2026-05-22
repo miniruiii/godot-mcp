@@ -278,3 +278,42 @@ func rename_node(params: Dictionary) -> Dictionary:
 
     EditorInterface.save_scene()
     return { "result": { "renamed": true, "new_name": new_name } }
+
+func get_node_groups(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+    return { "result": { "groups": target.get_groups() } }
+
+func set_node_groups(params: Dictionary) -> Dictionary:
+    var node_path = params.get("node_path", "")
+    var add_to_groups = params.get("add_to_groups", [])
+    var remove_from_groups = params.get("remove_from_groups", [])
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    for group in add_to_groups:
+        target.add_to_group(group)
+    for group in remove_from_groups:
+        target.remove_from_group(group)
+
+    EditorInterface.save_scene()
+    return { "result": { "success": true } }
+
+func find_nodes_in_group(params: Dictionary) -> Dictionary:
+    var group = params.get("group", "")
+    if group == "":
+        return { "error": { "code": -32600, "message": "Missing group name" } }
+
+    var root = EditorInterface.get_edited_scene_root()
+    if root == null:
+        return { "error": { "code": -32000, "message": "No scene is currently open" } }
+
+    var result = []
+    for node in root.get_tree().get_nodes_in_group(group):
+        result.append(str(node.get_path()))
+
+    return { "result": { "node_paths": result } }
