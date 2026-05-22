@@ -1,5 +1,19 @@
 extends RefCounted
 
+var debug_mode: bool = true
+
+func print_log(params: Dictionary) -> Dictionary:
+    var message = params.get("message", "")
+    var level = params.get("level", "debug")
+
+    if level == "debug" and not debug_mode:
+        return { "result": { "printed": false } }
+
+    var line = "[MCP] %s" % message
+    print(line)
+    append_log(line)
+    return { "result": { "printed": true } }
+
 var _log_lines: Array[String] = []
 var _max_log_lines: int = 1000
 
@@ -10,6 +24,7 @@ func append_log(line: String) -> void:
 
 func run_project(params: Dictionary) -> Dictionary:
     var scene_path = params.get("scene_path", "")
+    print("[MCP] run_project: scene_path=%s" % scene_path)
     if scene_path != "":
         EditorInterface.play_custom_scene(scene_path)
     else:
@@ -18,6 +33,7 @@ func run_project(params: Dictionary) -> Dictionary:
 
 func get_output_log(params: Dictionary) -> Dictionary:
     var lines_requested = params.get("lines", 100)
+    print("[MCP] get_output_log: lines=%d" % lines_requested)
     var output: Array[String] = []
     var source = ""
 
@@ -69,6 +85,7 @@ func get_output_log(params: Dictionary) -> Dictionary:
     return { "result": { "lines": output, "count": output.size(), "source": source } }
 
 func get_settings() -> Dictionary:
+    print("[MCP] get_settings")
     var settings = {
         "name": ProjectSettings.get_setting("application/config/name", "Unknown"),
         "features": ProjectSettings.get_setting("application/config/features", PackedStringArray()),

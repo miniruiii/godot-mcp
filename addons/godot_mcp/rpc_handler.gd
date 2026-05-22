@@ -152,6 +152,8 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return scene_editor_inst.set_node_groups(params)
         "node.find_in_group":
             return scene_editor_inst.find_nodes_in_group(params)
+        "log.print":
+            return project_editor_inst.print_log(params)
         _:
             return { "error": { "code": -32601, "message": "Method not found: %s" % method } }
 
