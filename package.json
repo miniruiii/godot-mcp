@@ -1,6 +1,6 @@
 {
   "name": "@minirui/godot-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Model Context Protocol server for Godot 4.6.2+",
   "type": "module",
   "main": "dist/server.js",
@@ -24,7 +24,12 @@
     "start": "node dist/server.js",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["godot", "mcp", "model-context-protocol", "game-development"],
+  "keywords": [
+    "godot",
+    "mcp",
+    "model-context-protocol",
+    "game-development"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
