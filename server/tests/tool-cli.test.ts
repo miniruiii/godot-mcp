@@ -31,7 +31,8 @@ describe('parseCliFlags', () => {
 
   it('parses JSON array value', () => {
     const result = parseCliFlags(['--node-paths', '["/root/A","/root/B"]']);
-    expect(result).toEqual({ nodePaths: ['/root/A', '/root/B'] });
+    expect(result.nodePaths).toEqual(['/root/A', '/root/B']);
+    expect(result.node_paths).toEqual(['/root/A', '/root/B']);
   });
 
   it('parses boolean flag without value', () => {
@@ -41,12 +42,14 @@ describe('parseCliFlags', () => {
 
   it('converts kebab-case to camelCase', () => {
     const result = parseCliFlags(['--node-path', '/root/Main']);
-    expect(result).toEqual({ nodePath: '/root/Main' });
+    expect(result.nodePath).toBe('/root/Main');
+    expect(result.node_path).toBe('/root/Main');
   });
 
   it('converts kebab-case with multiple words', () => {
     const result = parseCliFlags(['--max-depth', '3']);
-    expect(result).toEqual({ maxDepth: 3 });
+    expect(result.maxDepth).toBe(3);
+    expect(result.max_depth).toBe(3);
   });
 
   it('ignores non-flag arguments', () => {
@@ -60,11 +63,10 @@ describe('parseCliFlags', () => {
       '--max-depth', '3',
       '--pressed',
     ]);
-    expect(result).toEqual({
-      path: 'res://main.tscn',
-      maxDepth: 3,
-      pressed: true,
-    });
+    expect(result.path).toBe('res://main.tscn');
+    expect(result.maxDepth).toBe(3);
+    expect(result.max_depth).toBe(3);
+    expect(result.pressed).toBe(true);
   });
 
   it('parses numeric string as number via JSON.parse', () => {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { fileURLToPath } from 'url';
 import { loadConfig } from './config.js';
 import { GodotBridge } from './godot-bridge.js';
 import { buildToolRegistry, getToolGroups, type ToolDefinition } from './tools/index.js';
@@ -62,22 +63,36 @@ export function kebabToCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
+function kebabToSnake(s: string): string {
+  return s.replace(/-/g, '_');
+}
+
 export function parseCliFlags(args: string[]): Record<string, unknown> {
   const params: Record<string, unknown> = {};
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith('--')) continue;
-    const key = kebabToCamel(arg.slice(2));
+    const raw = arg.slice(2);
+    const keyCamel = kebabToCamel(raw);
+    const keySnake = kebabToSnake(raw);
     const next = args[i + 1];
     if (next && !next.startsWith('--')) {
+      let value: unknown;
       try {
-        params[key] = JSON.parse(next);
+        value = JSON.parse(next);
       } catch {
-        params[key] = next;
+        value = next;
+      }
+      params[keyCamel] = value;
+      if (keySnake !== keyCamel) {
+        params[keySnake] = value;
       }
       i++;
     } else {
-      params[key] = true;
+      params[keyCamel] = true;
+      if (keySnake !== keyCamel) {
+        params[keySnake] = true;
+      }
     }
   }
   return params;
@@ -133,11 +148,19 @@ function printCommandHelp(tool: ToolDefinition): void {
 }
 
 async function main(): Promise<void> {
+  let config;
+  try {
+    config = loadConfig('./settings.json');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(JSON.stringify({ error: `Failed to load config: ${message}` }));
+    process.exit(1);
+  }
+
   const args = process.argv.slice(2);
-  const config = loadConfig('./settings.json');
   const bridge = new GodotBridge(config.port);
 
-  bridge.connect().catch(() => {
+  const connectPromise = bridge.connect().catch(() => {
     // Godot not running — offline tools still work
   });
 
@@ -160,6 +183,12 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  if (args.length === 1) {
+    console.error(`Missing command for group: ${group}`);
+    console.error(`Run: godot-mcp ${group} --help for available commands`);
+    process.exit(1);
+  }
+
   const command = args[1];
 
   if (args.length >= 2 && args.slice(2).some(a => a === '--help' || a === '-h')) {
@@ -168,11 +197,12 @@ async function main(): Promise<void> {
     const tool = tools.find(t => t.name === toolName);
     if (tool) {
       printCommandHelp(tool);
+      process.exit(0);
     } else {
       console.error(`Unknown command: ${fullCommand}`);
       console.error('Run: godot-mcp --help for available commands');
+      process.exit(1);
     }
-    process.exit(1);
   }
 
   const fullCommand = `${group} ${command}`;
@@ -190,6 +220,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Wait a moment for bridge connection before running online tools
+  await Promise.race([connectPromise, new Promise((r) => setTimeout(r, 500))]);
+
   const params = parseCliFlags(args.slice(2));
 
   try {
@@ -202,8 +235,6 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 }
-
-import { fileURLToPath } from 'url';
 
 if (import.meta.url.startsWith('file:') && process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
