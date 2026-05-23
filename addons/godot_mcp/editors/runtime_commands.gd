@@ -114,14 +114,33 @@ func execute_script(params: Dictionary) -> Dictionary:
 	if code == "":
 		return { "error": { "code": ERR_MISSING_CODE, "message": "Missing code parameter" } }
 
-	var script = GDScript.new()
-	script.source_code = code
+	# Path 1: Try Expression for simple expressions (fast, no file I/O)
+	var expr = Expression.new()
+	var expr_err = expr.parse(code)
+	if expr_err == OK:
+		var expr_result = expr.execute()
+		if expr.has_execute_failed():
+			return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Expression execution failed" } }
+		return { "result": { "executed": true, "value": expr_result } }
 
-	var err = script.reload(false)
-	if err != OK:
-		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed" } }
+	# Path 2: Write to temp file and load as GDScript (supports full classes)
+	var temp_path = "user://mcp_execute_%d.gd" % Time.get_ticks_msec()
+	var file = FileAccess.open(temp_path, FileAccess.WRITE)
+	if file == null:
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Failed to create temp file: %s" % error_string(FileAccess.get_open_error()) } }
+	file.store_string(code)
+	file.close()
+
+	var script = load(temp_path)
+	if script == null:
+		DirAccess.remove_absolute(temp_path)
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed (Expression: %s)" % error_string(expr_err) } }
 
 	var instance = script.new()
+	if instance == null:
+		DirAccess.remove_absolute(temp_path)
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Failed to create script instance" } }
+
 	if instance.has_method("_ready"):
 		instance._ready()
 
@@ -130,6 +149,7 @@ func execute_script(params: Dictionary) -> Dictionary:
 	if instance is Node:
 		instance.queue_free()
 
+	DirAccess.remove_absolute(temp_path)
 	return { "result": { "executed": true } }
 
 func find_nodes_by_script(params: Dictionary) -> Dictionary:
