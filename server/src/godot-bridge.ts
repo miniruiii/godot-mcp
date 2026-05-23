@@ -38,6 +38,10 @@ export class GodotBridge {
     return this.godotVersion;
   }
 
+  // Debug accessors (for CLI testing only)
+  get _ws() { return this.ws; }
+  get _pending() { return this.pending; }
+
   async connect(): Promise<void> {
     if (this.isConnected) {
       return;
@@ -51,15 +55,8 @@ export class GodotBridge {
         const ws = new WebSocket(this.url);
         this.ws = ws;
 
-        ws.on('open', async () => {
+        ws.on('open', () => {
           this.reconnectDelay = 1000;
-          try {
-            const result = await this.call('handshake', {}) as { version: string; godot_version: string };
-            this.godotVersion = result.godot_version;
-            setLogBridge(this);
-          } catch {
-            // Handshake optional for backward compat
-          }
           resolve();
         });
 
@@ -84,10 +81,16 @@ export class GodotBridge {
       }
     });
 
+    await this.connectingPromise;
+    this.connectingPromise = null;
+
+    // Do handshake after connection is established
     try {
-      await this.connectingPromise;
-    } finally {
-      this.connectingPromise = null;
+      const result = await this.call('handshake', {}) as { version: string; godot_version: string };
+      this.godotVersion = result.godot_version;
+      setLogBridge(this);
+    } catch {
+      // Handshake optional for backward compat
     }
   }
 
