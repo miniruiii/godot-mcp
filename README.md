@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![npm version](https://img.shields.io/npm/v/godot-mcp)](https://www.npmjs.com/package/godot-mcp)
+[![npm version](https://img.shields.io/npm/v/@minirui/godot-mcp)](https://www.npmjs.com/package/@minirui/godot-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Godot 4.6](https://img.shields.io/badge/Godot-4.6.2+-478CBF)](https://godotengine.org)
 
@@ -44,13 +44,13 @@ Godot MCP is a fully open-source MCP server and editor plugin that bridges AI cl
 ### 1. Install the MCP Server
 
 ```bash
-npm install -g godot-mcp
+npm install -g @minirui/godot-mcp
 ```
 
 Or run without installing:
 
 ```bash
-npx godot-mcp
+npx @minirui/godot-mcp
 ```
 
 ### 2. Install the Godot Editor Plugin
@@ -72,7 +72,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["godot-mcp"]
+      "args": ["@minirui/godot-mcp"]
     }
   }
 }
@@ -87,7 +87,7 @@ Add to your MCP settings:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["godot-mcp"]
+      "args": ["@minirui/godot-mcp"]
     }
   }
 }

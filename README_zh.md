@@ -1,6 +1,6 @@
 # Godot MCP
 
-[![npm version](https://img.shields.io/npm/v/godot-mcp)](https://www.npmjs.com/package/godot-mcp)
+[![npm version](https://img.shields.io/npm/v/@minirui/godot-mcp)](https://www.npmjs.com/package/@minirui/godot-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Godot 4.6](https://img.shields.io/badge/Godot-4.6.2+-478CBF)](https://godotengine.org)
 
@@ -44,13 +44,13 @@ Godot MCP 是一个完全开源的 MCP 服务器和编辑器插件，为 AI 客�
 ### 1. 安装 MCP 服务器
 
 ```bash
-npm install -g godot-mcp
+npm install -g @minirui/godot-mcp
 ```
 
 或直接运行：
 
 ```bash
-npx godot-mcp
+npx @minirui/godot-mcp
 ```
 
 ### 2. 安装 Godot 编辑器插件
@@ -72,7 +72,7 @@ npx godot-mcp
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["godot-mcp"]
+      "args": ["@minirui/godot-mcp"]
     }
   }
 }
@@ -87,7 +87,7 @@ npx godot-mcp
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["godot-mcp"]
+      "args": ["@minirui/godot-mcp"]
     }
   }
 }
