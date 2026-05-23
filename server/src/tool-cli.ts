@@ -268,6 +268,23 @@ async function main(): Promise<void> {
     'edit_script': 'script_path',
     'create_script': 'script_path',
     'read_file': 'path',
+    'write_file': 'path',
+    'read_scene': 'scene_path',
+    'open_scene': 'scene_path',
+    'save_scene': 'scene_path',
+    'get_scene_tree': 'scene_path',
+    'get_node': 'node_path',
+    'add_node': 'node_path',
+    'remove_node': 'node_path',
+    'update_property': 'node_path',
+    'duplicate_node': 'node_path',
+    'move_node': 'node_path',
+    'connect_signal': 'node_path',
+    'disconnect_signal': 'node_path',
+    'rename_node': 'node_path',
+    'get_node_groups': 'node_path',
+    'set_node_groups': 'node_path',
+    'find_nodes_in_group': 'group',
   };
   if (toolNameToParam[toolName] && params.path !== undefined && params[toolNameToParam[toolName]] === undefined) {
     params[toolNameToParam[toolName]] = params.path;

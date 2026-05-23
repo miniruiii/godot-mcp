@@ -11,7 +11,8 @@ export interface GetSceneTreeResult {
 }
 
 export function getSceneTree(args: GetSceneTreeArgs, projectRoot: string, godotConnected: boolean): GetSceneTreeResult {
-  const scene = readScene(args, projectRoot);
+  const scenePath = args.scene_path || 'main.tscn';
+  const scene = readScene({ scene_path: scenePath }, projectRoot);
   const nodes: SceneNodeResult[] = [];
 
   function collect(node: SceneNodeResult) {
