@@ -119,9 +119,9 @@ func execute_script(params: Dictionary) -> Dictionary:
 	var expr_err = expr.parse(code)
 	if expr_err == OK:
 		var expr_result = expr.execute()
-		if expr.has_execute_failed():
-			return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Expression execution failed" } }
-		return { "result": { "executed": true, "value": expr_result } }
+		if not expr.has_execute_failed():
+			return { "result": { "executed": true, "value": expr_result } }
+		# Expression execute failed (e.g., unknown identifier) — fall through to GDScript path
 
 	# Path 2: Write to temp file and load as GDScript (supports full classes)
 	var temp_path = "user://mcp_execute_%d.gd" % Time.get_ticks_msec()
@@ -141,8 +141,9 @@ func execute_script(params: Dictionary) -> Dictionary:
 		DirAccess.remove_absolute(temp_path)
 		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Failed to create script instance" } }
 
+	var result = null
 	if instance.has_method("_ready"):
-		instance._ready()
+		result = instance._ready()
 
 	# RefCounted objects are auto-freed when ref_count reaches 0.
 	# Only Node-derived instances need explicit cleanup.
@@ -150,7 +151,7 @@ func execute_script(params: Dictionary) -> Dictionary:
 		instance.queue_free()
 
 	DirAccess.remove_absolute(temp_path)
-	return { "result": { "executed": true } }
+	return { "result": { "executed": true, "value": result } }
 
 func find_nodes_by_script(params: Dictionary) -> Dictionary:
 	print("[MCP] game.find_nodes_by_script: script_path=%s" % params.get("script_path", ""))
