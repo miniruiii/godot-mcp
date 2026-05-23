@@ -1,80 +1,243 @@
 # Godot MCP
 
-[🇺🇸 English](README_en.md) · [🇨🇳 简体中文](README_zh.md)
+[![npm version](https://img.shields.io/npm/v/godot-mcp)](https://www.npmjs.com/package/godot-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Godot 4.6](https://img.shields.io/badge/Godot-4.6.2+-478CBF)](https://godotengine.org)
+
+> Connect AI assistants to Godot 4.6.2+ via the [Model Context Protocol](https://modelcontextprotocol.io/).
+
+Godot MCP is a fully open-source MCP server and editor plugin that bridges AI clients (Claude, Cursor, VS Code Copilot, etc.) with your Godot projects. It provides **52 tools** across 8 categories, operating in both **offline** (file system) and **online** (live Godot editor) modes.
+
+[中文文档](README_zh.md)
 
 ---
 
-## 🌐 Language / 语言
+## Features
 
-| Language | Readme |
-|----------|--------|
-| 🇺🇸 English | [README_en.md](README_en.md) |
-| 🇨🇳 简体中文 | [README_zh.md](README_zh.md) |
+- **Dual-Mode Operation**
+  - **Offline**: Works with file system only — parse scenes, read scripts, list files.
+  - **Online**: Full integration with live Godot editor via WebSocket — edit scenes, run project, inspect runtime state.
+
+- **52 Built-in Tools**
+  - **Project**: File listing, settings, metadata
+  - **Scene**: Read/parse `.tscn`, create, save, open scenes
+  - **Node**: Tree introspection, add/remove/duplicate/move/rename nodes, signal wiring, group management
+  - **Script**: Create, read, edit GDScript/C# files
+  - **Editor**: Run project, fetch output logs
+  - **File**: Read/write any project file
+  - **Game** (runtime): Scene tree introspection, property manipulation, script execution, UI interaction, frame capture, input recording/replay
+  - **Input**: Key/mouse/action simulation
+
+- **CLI + MCP Dual Entry**
+  - Use as a traditional **MCP server** with AI clients
+  - Or use as a standalone **CLI tool** for scripting and automation
+
+- **Safe & Reversible**
+  - Path traversal protection
+  - WebSocket bound to localhost only
+  - All editor mutations go through Godot's native Undo/Redo system
 
 ---
 
-## 🇺🇸 Quick Overview
+## Quick Start
 
-A fully open-source MCP implementation for Godot 4.6.2+. Connect AI assistants to your Godot projects.
-
-**Features:** 50 tools · Dual-mode (offline/online) · Full/Lite/Minimal modes · UndoRedo support
+### 1. Install the MCP Server
 
 ```bash
-# Install
 npm install -g godot-mcp
+```
 
-# Run
+Or run without installing:
+
+```bash
 npx godot-mcp
 ```
 
-**Tools:** `list_project_files` · `read_scene` · `create_script` · `edit_script` · `get_node` · `run_project` · and 44 more.
+### 2. Install the Godot Editor Plugin
 
-**License:** MIT
+1. Copy the `addons/godot_mcp/` folder into your Godot project's `addons/` directory.
+2. Open **Project > Project Settings > Plugins**.
+3. Enable **"Godot MCP"**.
 
----
+The plugin starts a WebSocket server on port `6505` (configurable).
 
-## 🇨🇳 快速概览
+### 3. Configure Your AI Client
 
-开源的 Godot 4.6.2+ MCP 实现。连接 AI 助手到你的 Godot 项目。
+#### Claude Desktop
 
-**功能：** 50 个工具 · 双模式（离线/在线）· 三种运行模式 · UndoRedo 支持
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
-```bash
-# 安装
-npm install -g godot-mcp
-
-# 运行
-npx godot-mcp
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "npx",
+      "args": ["godot-mcp"]
+    }
+  }
+}
 ```
 
-**工具：** `list_project_files` · `read_scene` · `create_script` · `edit_script` · `get_node` · `run_project` · 等共 50 个。
+#### Cursor / VS Code Copilot
 
-**协议：** MIT
+Add to your MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "npx",
+      "args": ["godot-mcp"]
+    }
+  }
+}
+```
 
 ---
 
-## 🛠️ Tools Reference / 工具参考
+## CLI Usage
 
-### Project / 项目
-`list_project_files` · `read_project_settings` · `get_project_info`
+Godot MCP also works as a standalone CLI tool, useful for scripting and CI/CD.
 
-### Scene / 场景
-`read_scene` · `create_scene` · `save_scene` · `open_scene` · `add_node` · `remove_node` · `update_property`
+```bash
+# Show all available commands
+godot-mcp
 
-### Node / 节点
-`get_scene_tree` · `get_node` · `duplicate_node` · `move_node` · `connect_signal` · `disconnect_signal` · `get_node_groups` · `set_node_groups` · `find_nodes_in_group` · `rename_node`
+# Project commands (offline)
+godot-mcp project list-files --extension .gd
+godot-mcp project settings
+godot-mcp project info
 
-### Script / 脚本
-`create_script` · `read_script` · `edit_script`
+# Scene commands (offline)
+godot-mcp scene read --scene-path res://main.tscn
+godot-mcp scene create --scene-path res://new.tscn --root-type Node2D --root-name Root
 
-### Editor / 编辑器
-`run_project` · `get_output_log`
+# Node commands (requires Godot editor)
+godot-mcp node tree --scene-path res://main.tscn
+godot-mcp node add --scene-path res://main.tscn --parent-path /root/Main --node-type Sprite2D --node-name Player
 
-### File / 文件
-`read_file` · `write_file`
+# Game commands (requires running game)
+godot-mcp game tree --max-depth 3
+godot-mcp game execute --code "1 + 1"
+godot-mcp game execute --code $'extends Node2D\nfunc _ready():\n    print(\"Hello\")'
+godot-mcp game capture
 
-### Runtime / 运行时
-`get_game_scene_tree` · `get_game_node_properties` · `set_game_node_property` · `execute_game_script` · `find_nodes_by_script` · `get_autoload` · `batch_get_properties` · `find_ui_elements` · `click_button_by_text` · `wait_for_node` · `find_nearby_nodes` · `navigate_to` · `get_game_node_property` · `capture_frames` · `monitor_properties` · `start_recording` · `stop_recording` · `replay_recording`
+# Input simulation
+godot-mcp input key --keycode 65 --pressed true
+godot-mcp input mouse-click --button-index 1 --position-x 100 --position-y 200
+```
 
-### Input / 输入
-`simulate_key` · `simulate_mouse_click` · `simulate_mouse_move` · `simulate_action` · `simulate_sequence` · `get_input_actions` · `set_input_action`
+Use `--help` at any level for details:
+
+```bash
+godot-mcp project --help
+godot-mcp game execute --help
+```
+
+---
+
+## Configuration
+
+Create a `settings.json` in your working directory:
+
+```json
+{
+  "port": 6505,
+  "mode": "full",
+  "project_path": "./",
+  "log_level": "info"
+}
+```
+
+Or use environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GODOT_MCP_PORT` | WebSocket port | `6505` |
+| `GODOT_MCP_MODE` | Tool set: `full` / `lite` / `minimal` | `full` |
+| `GODOT_MCP_PROJECT_PATH` | Path to Godot project | `./` |
+| `GODOT_MCP_LOG_LEVEL` | Log verbosity | `info` |
+
+### Modes
+
+| Mode | Tools | Use Case |
+|------|-------|----------|
+| `full` | All 52 tools | AI clients with large context windows |
+| `lite` | 35 tools | Balanced context usage |
+| `minimal` | 12 tools | Highly constrained contexts |
+
+---
+
+## Architecture
+
+```
+┌─────────────┐      stdio/MCP      ┌──────────────────┐      WebSocket/JSON-RPC      ┌─────────────┐
+│  AI Client  │ ◄──────────────────► │  TypeScript Server │ ◄────────────────────────► │ Godot Plugin │
+│ (Claude etc)│                      │   (godot-mcp)      │                            │  (GDScript)  │
+└─────────────┘                      └──────────────────┘                            └─────────────┘
+                                              │
+                                              ▼
+                                       ┌─────────────┐
+                                       │ File System │
+                                       │ (.tscn, .gd)│
+                                       └─────────────┘
+```
+
+- **TypeScript Server**: MCP protocol handler, CLI entry point, file parser, WebSocket client.
+- **Godot Plugin**: WebSocket server, RPC router, editor command executor, runtime inspector.
+
+---
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build TypeScript
+npm run build
+
+# Run tests
+npm test
+
+# Watch mode
+npm run dev
+```
+
+### Project Structure
+
+```
+godot-mcp/
+├── addons/godot_mcp/          # Godot editor plugin (GDScript)
+│   ├── plugin.gd              # Plugin entry point
+│   ├── rpc_handler.gd         # JSON-RPC request router
+│   ├── websocket_server.gd    # WebSocket peer manager
+│   └── editors/               # Tool implementations
+│       ├── scene_editor.gd
+│       ├── script_editor.gd
+│       ├── runtime_commands.gd
+│       └── input_commands.gd
+├── server/src/                # TypeScript MCP server
+│   ├── cli.ts / tool-cli.ts   # CLI entry points
+│   ├── server.ts              # MCP server entry
+│   ├── godot-bridge.ts        # WebSocket client
+│   └── tools/                 # Tool handlers
+│       ├── project.ts
+│       ├── scene.ts
+│       ├── node.ts
+│       ├── runtime.ts
+│       └── ...
+├── dist/                      # Compiled JavaScript
+├── settings.json              # Server configuration
+└── package.json
+```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please open an issue or pull request.
+
+## License
+
+MIT

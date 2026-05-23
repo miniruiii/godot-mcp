@@ -1,18 +1,47 @@
 # Godot MCP
 
-开源的 Model Context Protocol (MCP) 实现，让 AI 助手（Claude、Cursor、VS Code Copilot 等）能够深度理解和操作 Godot 4.6.2+ 项目。
+[![npm version](https://img.shields.io/npm/v/godot-mcp)](https://www.npmjs.com/package/godot-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Godot 4.6](https://img.shields.io/badge/Godot-4.6.2+-478CBF)](https://godotengine.org)
+
+> 通过 [Model Context Protocol](https://modelcontextprotocol.io/) 将 AI 助手连接到 Godot 4.6.2+ 项目。
+
+Godot MCP 是一个完全开源的 MCP 服务器和编辑器插件，为 AI 客户端（Claude、Cursor、VS Code Copilot 等）与 Godot 项目之间搭建桥梁。提供 **52 个工具**，涵盖 8 大类别，支持**离线**（文件系统）和**在线**（Godot 编辑器实时通信）双模式运行。
+
+[English](README.md)
+
+---
 
 ## 功能特性
 
-- **双模式运行**：离线时通过文件系统操作，Godot 编辑器启动后解锁实时通信
-- **50 个内置工具**：覆盖项目探索、场景编辑、脚本管理、节点操作、运行时内省、输入模拟、项目运行
-- **三种运行模式**：Full / Lite / Minimal，适配不同 AI 客户端的上下文限制
-- **安全可靠**：路径限制防止目录遍历攻击；WebSocket 仅绑定本地
-- **UndoRedo 支持**：所有编辑器修改通过 Godot 内置撤销系统
+- **双模式运行**
+  - **离线模式**：仅通过文件系统操作 —— 解析场景、读取脚本、列出文件。
+  - **在线模式**：通过 WebSocket 与 Godot 编辑器深度集成 —— 编辑场景、运行项目、检查运行时状态。
+
+- **52 个内置工具**
+  - **Project（项目）**：文件列表、设置读取、元数据
+  - **Scene（场景）**：读取/解析 `.tscn`、创建、保存、打开场景
+  - **Node（节点）**：节点树查看、增删改查、复制/移动/重命名、信号连接、分组管理
+  - **Script（脚本）**：创建、读取、编辑 GDScript/C# 文件
+  - **Editor（编辑器）**：运行项目、获取输出日志
+  - **File（文件）**：读写任意项目文件
+  - **Game（运行时）**：场景树内省、属性操作、脚本执行、UI 交互、帧捕获、输入录制/回放
+  - **Input（输入）**：键盘/鼠标/动作模拟
+
+- **CLI + MCP 双入口**
+  - 作为传统 **MCP 服务器**与 AI 客户端配合使用
+  - 或作为独立 **CLI 工具**用于脚本和自动化
+
+- **安全可撤销**
+  - 路径遍历保护
+  - WebSocket 仅绑定本地地址
+  - 所有编辑器修改均通过 Godot 原生撤销系统执行
+
+---
 
 ## 快速开始
 
-### 安装 MCP 服务器
+### 1. 安装 MCP 服务器
 
 ```bash
 npm install -g godot-mcp
@@ -24,17 +53,19 @@ npm install -g godot-mcp
 npx godot-mcp
 ```
 
-### 安装 Godot 编辑器插件
+### 2. 安装 Godot 编辑器插件
 
-1. 将 `addons/godot_mcp/` 复制到你的 Godot 项目中的 `addons/` 目录
-2. 打开 **项目设置 > 插件**
-3. 启用 "Godot MCP"
+1. 将 `addons/godot_mcp/` 文件夹复制到你的 Godot 项目的 `addons/` 目录中。
+2. 打开 **项目 > 项目设置 > 插件**。
+3. 启用 **"Godot MCP"**。
 
-### 配置 AI 客户端
+插件会在端口 `6505`（可配置）启动 WebSocket 服务器。
+
+### 3. 配置 AI 客户端
 
 #### Claude Desktop
 
-编辑 `claude_desktop_config.json`：
+编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`（macOS）或 `%APPDATA%\Claude\claude_desktop_config.json`（Windows）：
 
 ```json
 {
@@ -47,129 +78,165 @@ npx godot-mcp
 }
 ```
 
-## CLI 参数
+#### Cursor / VS Code Copilot
 
-```bash
-godot-mcp [选项]
+添加到 MCP 设置：
 
-选项：
-  --mode <full|lite|minimal>  运行模式（默认：full）
-  --port <端口号>              WebSocket 端口（默认：6505）
-  --log-level <级别>           日志级别：debug, info, warn, error（默认：info）
-  --help, -h                   显示帮助
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "npx",
+      "args": ["godot-mcp"]
+    }
+  }
+}
 ```
 
-### 环境变量
+---
+
+## CLI 使用
+
+Godot MCP 也可以作为独立 CLI 工具使用，适用于脚本编写和 CI/CD。
+
+```bash
+# 显示所有可用命令
+godot-mcp
+
+# Project 命令（离线）
+godot-mcp project list-files --extension .gd
+godot-mcp project settings
+godot-mcp project info
+
+# Scene 命令（离线）
+godot-mcp scene read --scene-path res://main.tscn
+godot-mcp scene create --scene-path res://new.tscn --root-type Node2D --root-name Root
+
+# Node 命令（需要 Godot 编辑器）
+godot-mcp node tree --scene-path res://main.tscn
+godot-mcp node add --scene-path res://main.tscn --parent-path /root/Main --node-type Sprite2D --node-name Player
+
+# Game 命令（需要运行中的游戏）
+godot-mcp game tree --max-depth 3
+godot-mcp game execute --code "1 + 1"
+godot-mcp game execute --code $'extends Node2D\nfunc _ready():\n    print(\"Hello\")'
+godot-mcp game capture
+
+# 输入模拟
+godot-mcp input key --keycode 65 --pressed true
+godot-mcp input mouse-click --button-index 1 --position-x 100 --position-y 200
+```
+
+在任何层级使用 `--help` 查看详情：
+
+```bash
+godot-mcp project --help
+godot-mcp game execute --help
+```
+
+---
+
+## 配置
+
+在工作目录创建 `settings.json`：
+
+```json
+{
+  "port": 6505,
+  "mode": "full",
+  "project_path": "./",
+  "log_level": "info"
+}
+```
+
+或使用环境变量：
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `GODOT_MCP_MODE` | 运行模式 | `full` |
 | `GODOT_MCP_PORT` | WebSocket 端口 | `6505` |
+| `GODOT_MCP_MODE` | 工具集：`full` / `lite` / `minimal` | `full` |
 | `GODOT_MCP_PROJECT_PATH` | Godot 项目路径 | `./` |
 | `GODOT_MCP_LOG_LEVEL` | 日志级别 | `info` |
 
-## 工具参考
+### 运行模式
 
-### 项目工具（所有模式）
-- `list_project_files` — 列出项目文件
-- `read_project_settings` — 读取 project.godot 配置
-- `get_project_info` — 获取引擎版本和渲染后端
+| 模式 | 工具数量 | 适用场景 |
+|------|---------|---------|
+| `full` | 全部 52 个 | 大上下文窗口的 AI 客户端 |
+| `lite` | 35 个 | 平衡上下文占用 |
+| `minimal` | 12 个 | 上下文受限的场景 |
 
-### 场景工具（所有模式）
-- `read_scene` — 解析 .tscn 为节点树
-- `create_scene` — 创建新场景
-
-### 场景工具（在线）
-- `save_scene` — 保存场景
-- `open_scene` — 打开场景
-- `add_node` — 添加节点
-- `remove_node` — 删除节点
-- `update_property` — 修改节点属性
-
-### 节点工具（所有模式）
-- `get_scene_tree` — 获取完整节点树
-- `get_node` — 获取单个节点详情
-
-### 节点编辑工具（在线）
-- `duplicate_node` — 复制节点
-- `move_node` — 移动节点到新父节点
-- `connect_signal` — 连接信号到方法
-- `disconnect_signal` — 断开信号连接
-- `get_node_groups` — 获取节点所属分组
-- `set_node_groups` — 添加/移除节点分组
-- `find_nodes_in_group` — 查找分组中的所有节点
-- `rename_node` — 重命名节点
-
-### 脚本工具（所有模式）
-- `create_script` — 创建脚本
-- `read_script` — 读取脚本
-- `edit_script` — 编辑脚本（全量替换或行范围）
-
-### 编辑器工具（在线）
-- `run_project` — 运行项目
-- `get_output_log` — 获取输出日志
-
-### 文件工具（所有模式）
-- `read_file` — 读取文件
-- `write_file` — 写入文件
-
-### 运行时工具（在线）
-- `get_game_scene_tree` — 获取运行中游戏的场景树（支持 `max_depth` 限制返回深度，避免数据过大）
-- `get_game_node_properties` — 获取游戏节点所有属性
-- `set_game_node_property` — 设置游戏节点属性
-- `execute_game_script` — 在运行游戏中执行 GDScript（实例化脚本，如存在 `_ready()` 则调用）
-- `find_nodes_by_script` — 按脚本查找节点
-- `get_autoload` — 获取自动加载单例
-- `batch_get_properties` — 批量获取多个节点属性
-- `find_ui_elements` — 按类型或文本查找 UI 元素
-- `click_button_by_text` — 点击指定文本的按钮
-- `wait_for_node` — 等待节点出现
-- `find_nearby_nodes` — 查找附近节点（需要 2D/3D 位置节点）
-- `navigate_to` — 设置 NavigationAgent 导航目标
-- `get_game_node_property` — 获取单个属性值
-- `capture_frames` — 捕获视口帧（需要游戏视口处于活动状态）
-- `monitor_properties` — 监控属性变化
-- `start_recording` — 开始录制输入
-- `stop_recording` — 停止录制并获取数据
-- `replay_recording` — 回放录制的输入
-
-### 输入模拟工具（在线）
-- `simulate_key` — 模拟键盘按键
-- `simulate_mouse_click` — 模拟鼠标点击
-- `simulate_mouse_move` — 模拟鼠标移动
-- `simulate_action` — 模拟输入动作
-- `simulate_sequence` — 模拟输入序列
-- `get_input_actions` — 获取所有输入动作
-- `set_input_action` — 添加/修改输入动作
-
-## 测试结果
-
-| 类别 | 通过 | 说明 |
-|------|------|------|
-| Project (5) | 5/5 | 全部通过 |
-| Scene (8) | 8/8 | 全部通过 |
-| Script (3) | 3/3 | 全部通过 |
-| Node (8) | 8/8 | 全部通过 |
-| Input (7) | 7/7 | 全部通过 |
-| Runtime (19) | 17/19 | `capture_frames` 需要活动视口；`find_nearby_nodes`/`navigate_to` 需要特定节点类型 |
-| **总计** | **48/50** | **通过率 96%** |
+---
 
 ## 架构
 
 ```
-AI 客户端 <-- MCP/stdio --> TypeScript 服务器 <-- WebSocket/JSON-RPC --> Godot 插件
-                                      |
-                                      v
-                                 文件系统
+┌─────────────┐      stdio/MCP      ┌──────────────────┐      WebSocket/JSON-RPC      ┌─────────────┐
+│  AI 客户端   │ ◄──────────────────► │  TypeScript 服务器  │ ◄────────────────────────► │ Godot 插件   │
+│(Claude 等)  │                      │   (godot-mcp)      │                            │  (GDScript)  │
+└─────────────┘                      └──────────────────┘                            └─────────────┘
+                                              │
+                                              ▼
+                                       ┌─────────────┐
+                                       │  文件系统    │
+                                       │(.tscn, .gd) │
+                                       └─────────────┘
 ```
+
+- **TypeScript 服务器**：MCP 协议处理器、CLI 入口、文件解析器、WebSocket 客户端。
+- **Godot 插件**：WebSocket 服务器、RPC 路由器、编辑器命令执行器、运行时检查器。
+
+---
 
 ## 开发
 
 ```bash
+# 安装依赖
 npm install
-npm run build    # 编译 TypeScript
-npm test         # 运行测试
+
+# 编译 TypeScript
+npm run build
+
+# 运行测试
+npm test
+
+# 监听模式
+npm run dev
 ```
+
+### 项目结构
+
+```
+godot-mcp/
+├── addons/godot_mcp/          # Godot 编辑器插件（GDScript）
+│   ├── plugin.gd              # 插件入口
+│   ├── rpc_handler.gd         # JSON-RPC 请求路由器
+│   ├── websocket_server.gd    # WebSocket 连接管理
+│   └── editors/               # 工具实现
+│       ├── scene_editor.gd
+│       ├── script_editor.gd
+│       ├── runtime_commands.gd
+│       └── input_commands.gd
+├── server/src/                # TypeScript MCP 服务器
+│   ├── cli.ts / tool-cli.ts   # CLI 入口
+│   ├── server.ts              # MCP 服务器入口
+│   ├── godot-bridge.ts        # WebSocket 客户端
+│   └── tools/                 # 工具处理器
+│       ├── project.ts
+│       ├── scene.ts
+│       ├── node.ts
+│       ├── runtime.ts
+│       └── ...
+├── dist/                      # 编译后的 JavaScript
+├── settings.json              # 服务器配置
+└── package.json
+```
+
+---
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
 
 ## 协议
 
