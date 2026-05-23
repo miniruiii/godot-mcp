@@ -253,6 +253,26 @@ async function main(): Promise<void> {
     }
   }
 
+  // Normalize snake_case params (e.g., scriptPath -> script_path)
+  const snakeCaseParams = ['scriptPath', 'scenePath', 'nodePath', 'targetPath', 'property', 'maxDepth', 'timeoutMs', 'maxDistance'];
+  for (const key of snakeCaseParams) {
+    const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+    if (params[key] !== undefined && params[snakeKey] === undefined) {
+      params[snakeKey] = params[key];
+    }
+  }
+
+  // Normalize path parameter aliases for specific tools
+  const toolNameToParam: Record<string, string> = {
+    'read_script': 'script_path',
+    'edit_script': 'script_path',
+    'create_script': 'script_path',
+    'read_file': 'path',
+  };
+  if (toolNameToParam[toolName] && params.path !== undefined && params[toolNameToParam[toolName]] === undefined) {
+    params[toolNameToParam[toolName]] = params.path;
+  }
+
   try {
     const result = await tool.handler(params);
     console.log(JSON.stringify(result, null, 2));
