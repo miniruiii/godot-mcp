@@ -1,0 +1,309 @@
+#!/usr/bin/env node
+import { fileURLToPath } from 'url';
+import { loadConfig } from './config.js';
+import { GodotBridge } from './godot-bridge.js';
+import { buildToolRegistry, getToolGroups, type ToolDefinition } from './tools/index.js';
+
+export const COMMAND_MAP: Record<string, string> = {
+  'project list-files': 'list_project_files',
+  'project settings': 'read_project_settings',
+  'project info': 'get_project_info',
+  'scene read': 'read_scene',
+  'scene create': 'create_scene',
+  'scene save': 'save_scene',
+  'scene open': 'open_scene',
+  'node tree': 'get_scene_tree',
+  'node get': 'get_node',
+  'node add': 'add_node',
+  'node remove': 'remove_node',
+  'node update': 'update_property',
+  'node duplicate': 'duplicate_node',
+  'node move': 'move_node',
+  'node connect': 'connect_signal',
+  'node disconnect': 'disconnect_signal',
+  'node groups': 'get_node_groups',
+  'node set-groups': 'set_node_groups',
+  'node find-in-group': 'find_nodes_in_group',
+  'node rename': 'rename_node',
+  'script create': 'create_script',
+  'script read': 'read_script',
+  'script edit': 'edit_script',
+  'editor run': 'run_project',
+  'editor logs': 'get_output_log',
+  'file read': 'read_file',
+  'file write': 'write_file',
+  'game tree': 'get_game_scene_tree',
+  'game properties': 'get_game_node_properties',
+  'game set-property': 'set_game_node_property',
+  'game execute': 'execute_game_script',
+  'game find-by-script': 'find_nodes_by_script',
+  'game autoload': 'get_autoload',
+  'game batch-properties': 'batch_get_properties',
+  'game ui-elements': 'find_ui_elements',
+  'game click-button': 'click_button_by_text',
+  'game wait-for-node': 'wait_for_node',
+  'game nearby-nodes': 'find_nearby_nodes',
+  'game navigate': 'navigate_to',
+  'game property': 'get_game_node_property',
+  'game capture': 'capture_frames',
+  'game monitor': 'monitor_properties',
+  'game start-recording': 'start_recording',
+  'game stop-recording': 'stop_recording',
+  'game replay-recording': 'replay_recording',
+  'input key': 'simulate_key',
+  'input mouse-click': 'simulate_mouse_click',
+  'input mouse-move': 'simulate_mouse_move',
+  'input action': 'simulate_action',
+  'input sequence': 'simulate_sequence',
+  'input actions': 'get_input_actions',
+  'input set-action': 'set_input_action',
+};
+
+export function kebabToCamel(s: string): string {
+  return s.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function kebabToSnake(s: string): string {
+  return s.replace(/-/g, '_');
+}
+
+export function parseCliFlags(args: string[]): Record<string, unknown> {
+  const params: Record<string, unknown> = {};
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) continue;
+
+    // Handle --key=value format
+    const rawEqualsIdx = arg.indexOf('=');
+    let raw: string;
+    let value: unknown;
+
+    if (rawEqualsIdx !== -1) {
+      // --key=value format
+      raw = arg.slice(2, rawEqualsIdx);
+      const rawValue = arg.slice(rawEqualsIdx + 1);
+      try {
+        value = JSON.parse(rawValue);
+      } catch {
+        value = rawValue;
+      }
+    } else {
+      // --key value format
+      raw = arg.slice(2);
+      const next = args[i + 1];
+      if (next && !next.startsWith('--')) {
+        try {
+          value = JSON.parse(next);
+        } catch {
+          value = next;
+        }
+        i++;
+      } else {
+        value = true;
+      }
+    }
+
+    const keyCamel = kebabToCamel(raw);
+    const keySnake = kebabToSnake(raw);
+    params[keyCamel] = value;
+    if (keySnake !== keyCamel) {
+      params[keySnake] = value;
+    }
+  }
+  return params;
+}
+
+function printGeneralHelp(tools: ToolDefinition[]): void {
+  const groups = getToolGroups(tools);
+  console.log('godot-mcp <group> <command> [options]');
+  console.log('');
+  console.log('Groups:');
+  for (const group of Object.keys(groups).sort()) {
+    console.log(`  ${group} (${groups[group].length} commands)`);
+  }
+  console.log('');
+  console.log('Use: godot-mcp <group> --help    for group commands');
+  console.log('Use: godot-mcp <group> <cmd> --help for command options');
+}
+
+function printGroupHelp(group: string, tools: ToolDefinition[]): void {
+  const groups = getToolGroups(tools);
+  const groupTools = groups[group];
+  if (!groupTools) {
+    console.error(`Unknown group: ${group}`);
+    process.exit(1);
+  }
+  console.log(`godot-mcp ${group} <command> [options]`);
+  console.log('');
+  console.log('Commands:');
+  for (const tool of groupTools) {
+    const cliCmd = Object.entries(COMMAND_MAP).find(([, v]) => v === tool.name)?.[0] ?? tool.name;
+    const [, cmd] = cliCmd.split(' ');
+    console.log(`  ${cmd.padEnd(20)} ${tool.description}`);
+  }
+}
+
+function printCommandHelp(tool: ToolDefinition): void {
+  const cliCmd = Object.entries(COMMAND_MAP).find(([, v]) => v === tool.name)?.[0] ?? `${tool.group} ${tool.name}`;
+  console.log(`godot-mcp ${cliCmd} [options]`);
+  console.log('');
+  console.log(tool.description);
+  console.log('');
+  const schema = tool.inputSchema as { properties?: Record<string, { type?: string; description?: string }>; required?: string[] };
+  if (schema.properties && Object.keys(schema.properties).length > 0) {
+    console.log('Options:');
+    for (const [key, val] of Object.entries(schema.properties)) {
+      const required = schema.required?.includes(key) ? ' (required)' : '';
+      const flag = key.replace(/[A-Z]/g, c => '-' + c.toLowerCase());
+      console.log(`  --${flag.padEnd(20)} <${val.type || 'string'}>${required}  ${val.description || ''}`);
+    }
+  } else {
+    console.log('No options.');
+  }
+}
+
+async function main(): Promise<void> {
+  let config;
+  try {
+    config = loadConfig('./settings.json');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(JSON.stringify({ error: `Failed to load config: ${message}` }));
+    process.exit(1);
+  }
+
+  const args = process.argv.slice(2);
+  const bridge = new GodotBridge(config.port);
+
+  const connectPromise = bridge.connect().catch(() => {
+    // Godot not running — offline tools still work
+  });
+
+  const tools = buildToolRegistry(config, bridge);
+
+  if (args.length === 0) {
+    printGeneralHelp(tools);
+    process.exit(0);
+  }
+
+  const group = args[0];
+
+  if (group === '--help' || group === '-h') {
+    printGeneralHelp(tools);
+    process.exit(0);
+  }
+
+  if (args.length === 2 && (args[1] === '--help' || args[1] === '-h')) {
+    printGroupHelp(group, tools);
+    process.exit(0);
+  }
+
+  if (args.length === 1) {
+    console.error(`Missing command for group: ${group}`);
+    console.error(`Run: godot-mcp ${group} --help for available commands`);
+    process.exit(1);
+  }
+
+  const command = args[1];
+
+  if (args.length >= 2 && args.slice(2).some(a => a === '--help' || a === '-h')) {
+    const fullCommand = `${group} ${command}`;
+    const toolName = COMMAND_MAP[fullCommand];
+    const tool = tools.find(t => t.name === toolName);
+    if (tool) {
+      printCommandHelp(tool);
+      process.exit(0);
+    } else {
+      console.error(`Unknown command: ${fullCommand}`);
+      console.error('Run: godot-mcp --help for available commands');
+      process.exit(1);
+    }
+  }
+
+  const fullCommand = `${group} ${command}`;
+  const toolName = COMMAND_MAP[fullCommand];
+
+  if (!toolName) {
+    console.error(`Unknown command: ${fullCommand}`);
+    console.error('Run: godot-mcp --help for available commands');
+    process.exit(1);
+  }
+
+  const tool = tools.find(t => t.name === toolName);
+  if (!tool) {
+    console.error(`Tool not found: ${toolName}`);
+    process.exit(1);
+  }
+
+  // Wait a moment for bridge connection before running online tools
+  await Promise.race([connectPromise, new Promise((r) => setTimeout(r, 500))]);
+
+  const params = parseCliFlags(args.slice(2));
+
+  // Normalize node_path for game commands (strip any path prefixes that got added)
+  if (params.node_path && typeof params.node_path === 'string') {
+    // If node_path contains '/root' somewhere, extract just that part
+    const match = params.node_path.match(/\/root(?:\/[^\/]+)*/);
+    if (match) {
+      params.node_path = match[0];
+      // Also update camelCase version if present
+      if (params.nodePath) {
+        params.nodePath = match[0];
+      }
+    }
+  }
+
+  // Normalize snake_case params (e.g., scriptPath -> script_path)
+  const snakeCaseParams = ['scriptPath', 'scenePath', 'nodePath', 'targetPath', 'property', 'maxDepth', 'timeoutMs', 'maxDistance'];
+  for (const key of snakeCaseParams) {
+    const snakeKey = key.replace(/[A-Z]/g, c => '_' + c.toLowerCase());
+    if (params[key] !== undefined && params[snakeKey] === undefined) {
+      params[snakeKey] = params[key];
+    }
+  }
+
+  // Normalize path parameter aliases for specific tools
+  const toolNameToParam: Record<string, string> = {
+    'read_script': 'script_path',
+    'edit_script': 'script_path',
+    'create_script': 'script_path',
+    'read_file': 'path',
+    'write_file': 'path',
+    'read_scene': 'scene_path',
+    'open_scene': 'scene_path',
+    'save_scene': 'scene_path',
+    'get_scene_tree': 'scene_path',
+    'get_node': 'node_path',
+    'add_node': 'node_path',
+    'remove_node': 'node_path',
+    'update_property': 'node_path',
+    'duplicate_node': 'node_path',
+    'move_node': 'node_path',
+    'connect_signal': 'node_path',
+    'disconnect_signal': 'node_path',
+    'rename_node': 'node_path',
+    'get_node_groups': 'node_path',
+    'set_node_groups': 'node_path',
+    'find_nodes_in_group': 'group',
+  };
+  if (toolNameToParam[toolName] && params.path !== undefined && params[toolNameToParam[toolName]] === undefined) {
+    params[toolNameToParam[toolName]] = params.path;
+  }
+
+  try {
+    const result = await tool.handler(params);
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(0);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(JSON.stringify({ error: message }));
+    process.exit(1);
+  }
+}
+
+if (import.meta.url.startsWith('file:') && process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error(JSON.stringify({ error: String(err) }));
+    process.exit(1);
+  });
+}

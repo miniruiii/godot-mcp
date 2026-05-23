@@ -4,7 +4,11 @@ import { mcpLog, formatArgs } from './log.js';
 import { readFileTool, writeFileTool } from './file.js';
 import { listProjectFiles, readProjectSettings, getProjectInfo } from './project.js';
 import { readScene, createScene, saveScene, openScene } from './scene.js';
-import { getSceneTree, getNode, addNode, removeNode, updateProperty } from './node.js';
+import {
+  getSceneTree, getNode, addNode, removeNode, updateProperty,
+  duplicateNode, moveNode, connectSignal, disconnectSignal,
+  getNodeGroups, setNodeGroups, findNodesInGroup, renameNode
+} from './node.js';
 import { createScript, readScript, editScript } from './script.js';
 import { runProject, getOutputLog } from './editor.js';
 import {
@@ -17,13 +21,10 @@ import {
   simulateKey, simulateMouseClick, simulateMouseMove, simulateAction,
   simulateSequence, getInputActions, setInputAction
 } from './input.js';
-import {
-  duplicateNode, moveNode, connectSignal, disconnectSignal,
-  getNodeGroups, setNodeGroups, findNodesInGroup, renameNode
-} from './node.js';
 
 export interface ToolDefinition {
   name: string;
+  group: string;
   description: string;
   inputSchema: object;
   handler: (args: Record<string, unknown>) => Promise<unknown> | unknown;
@@ -32,9 +33,10 @@ export interface ToolDefinition {
 export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefinition[] {
   const projectRoot = config.project_path;
 
-  const tools = [
+  const tools: ToolDefinition[] = [
     {
       name: 'list_project_files',
+      group: 'project',
       description: 'List all files in the Godot project. Optional filter by extension.',
       inputSchema: {
         type: 'object',
@@ -44,18 +46,21 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'read_project_settings',
+      group: 'project',
       description: 'Read key settings from project.godot',
       inputSchema: { type: 'object', properties: {} },
       handler: () => readProjectSettings({}, projectRoot),
     },
     {
       name: 'get_project_info',
+      group: 'project',
       description: 'Get project metadata: engine version, rendering backend',
       inputSchema: { type: 'object', properties: {} },
       handler: () => getProjectInfo({}, projectRoot),
     },
     {
       name: 'read_scene',
+      group: 'scene',
       description: 'Read a .tscn file and return its node tree structure',
       inputSchema: {
         type: 'object',
@@ -66,6 +71,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'create_scene',
+      group: 'scene',
       description: 'Create a new .tscn file with a root node',
       inputSchema: {
         type: 'object',
@@ -76,6 +82,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'save_scene',
+      group: 'scene',
       description: 'Save the current scene in Godot editor',
       inputSchema: {
         type: 'object',
@@ -86,6 +93,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'open_scene',
+      group: 'scene',
       description: 'Open a scene in Godot editor',
       inputSchema: {
         type: 'object',
@@ -96,6 +104,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_scene_tree',
+      group: 'node',
       description: 'Get the full node tree of a scene',
       inputSchema: {
         type: 'object',
@@ -106,6 +115,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_node',
+      group: 'node',
       description: 'Get details of a single node by path',
       inputSchema: {
         type: 'object',
@@ -116,6 +126,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'add_node',
+      group: 'node',
       description: 'Add a node to a scene in Godot editor',
       inputSchema: {
         type: 'object',
@@ -126,6 +137,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'remove_node',
+      group: 'node',
       description: 'Remove a node from a scene in Godot editor',
       inputSchema: {
         type: 'object',
@@ -136,6 +148,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'update_property',
+      group: 'node',
       description: 'Update a property of a node in Godot editor',
       inputSchema: {
         type: 'object',
@@ -145,7 +158,96 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       handler: (args: Record<string, unknown>) => updateProperty(args as any, projectRoot, bridge),
     },
     {
+      name: 'duplicate_node',
+      group: 'node',
+      description: 'Duplicate a node in a scene with a new name',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'new_name'],
+      },
+      handler: (args: Record<string, unknown>) => duplicateNode(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'move_node',
+      group: 'node',
+      description: 'Move a node to a new parent in the scene tree',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_parent_path: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'new_parent_path'],
+      },
+      handler: (args: Record<string, unknown>) => moveNode(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'connect_signal',
+      group: 'node',
+      description: 'Connect a signal from one node to a method on another',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
+      },
+      handler: (args: Record<string, unknown>) => connectSignal(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'disconnect_signal',
+      group: 'node',
+      description: 'Disconnect a signal connection between nodes',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
+      },
+      handler: (args: Record<string, unknown>) => disconnectSignal(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'get_node_groups',
+      group: 'node',
+      description: 'Get all groups that a node belongs to',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
+        required: ['scene_path', 'node_path'],
+      },
+      handler: (args: Record<string, unknown>) => getNodeGroups(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'set_node_groups',
+      group: 'node',
+      description: 'Add or remove a node from groups',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, add_to_groups: { type: 'array', items: { type: 'string' } }, remove_from_groups: { type: 'array', items: { type: 'string' } } },
+        required: ['scene_path', 'node_path'],
+      },
+      handler: (args: Record<string, unknown>) => setNodeGroups(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'find_nodes_in_group',
+      group: 'node',
+      description: 'Find all nodes that belong to a specific group',
+      inputSchema: {
+        type: 'object',
+        properties: { group: { type: 'string' } },
+        required: ['group'],
+      },
+      handler: (args: Record<string, unknown>) => findNodesInGroup(args as any, projectRoot, bridge),
+    },
+    {
+      name: 'rename_node',
+      group: 'node',
+      description: 'Rename a node in a scene',
+      inputSchema: {
+        type: 'object',
+        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
+        required: ['scene_path', 'node_path', 'new_name'],
+      },
+      handler: (args: Record<string, unknown>) => renameNode(args as any, projectRoot, bridge),
+    },
+    {
       name: 'create_script',
+      group: 'script',
       description: 'Create a new GDScript or C# file',
       inputSchema: {
         type: 'object',
@@ -156,6 +258,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'read_script',
+      group: 'script',
       description: 'Read the content of a script file',
       inputSchema: {
         type: 'object',
@@ -166,6 +269,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'edit_script',
+      group: 'script',
       description: 'Edit a script by full replacement or line range',
       inputSchema: {
         type: 'object',
@@ -176,6 +280,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'run_project',
+      group: 'editor',
       description: 'Run the Godot project',
       inputSchema: {
         type: 'object',
@@ -185,6 +290,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_output_log',
+      group: 'editor',
       description: 'Get recent lines from the Godot editor output log',
       inputSchema: {
         type: 'object',
@@ -194,6 +300,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'read_file',
+      group: 'file',
       description: 'Read any file in the project',
       inputSchema: {
         type: 'object',
@@ -204,6 +311,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'write_file',
+      group: 'file',
       description: 'Write content to any file in the project',
       inputSchema: {
         type: 'object',
@@ -212,9 +320,9 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       },
       handler: (args: Record<string, unknown>) => writeFileTool(args as any, projectRoot),
     },
-    // Runtime tools (19)
     {
       name: 'get_game_scene_tree',
+      group: 'game',
       description: 'Get the active scene tree from a running Godot game. Use max_depth to limit tree depth and avoid large payloads.',
       inputSchema: {
         type: 'object',
@@ -226,6 +334,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_game_node_properties',
+      group: 'game',
       description: 'Get all properties of a node in a running Godot game',
       inputSchema: {
         type: 'object',
@@ -236,6 +345,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'set_game_node_property',
+      group: 'game',
       description: 'Set a property value on a node in a running Godot game',
       inputSchema: {
         type: 'object',
@@ -246,6 +356,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'execute_game_script',
+      group: 'game',
       description: 'Execute arbitrary GDScript code in a running Godot game',
       inputSchema: {
         type: 'object',
@@ -256,6 +367,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'find_nodes_by_script',
+      group: 'game',
       description: 'Find all nodes in the current scene tree that use a specific script',
       inputSchema: {
         type: 'object',
@@ -266,6 +378,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_autoload',
+      group: 'game',
       description: 'Get the autoload singleton by name',
       inputSchema: {
         type: 'object',
@@ -276,6 +389,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'batch_get_properties',
+      group: 'game',
       description: 'Get properties from multiple nodes in a single call',
       inputSchema: {
         type: 'object',
@@ -286,6 +400,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'find_ui_elements',
+      group: 'game',
       description: 'Find UI elements by type or text content',
       inputSchema: {
         type: 'object',
@@ -295,6 +410,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'click_button_by_text',
+      group: 'game',
       description: 'Click a button UI element that contains the specified text',
       inputSchema: {
         type: 'object',
@@ -305,6 +421,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'wait_for_node',
+      group: 'game',
       description: 'Wait for a node to appear in the scene tree',
       inputSchema: {
         type: 'object',
@@ -315,6 +432,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'find_nearby_nodes',
+      group: 'game',
       description: 'Find nodes near a given node within a specified distance',
       inputSchema: {
         type: 'object',
@@ -325,6 +443,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'navigate_to',
+      group: 'game',
       description: 'Navigate to a target node (e.g., for UI navigation)',
       inputSchema: {
         type: 'object',
@@ -335,6 +454,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_game_node_property',
+      group: 'game',
       description: 'Get a single property value from a node in a running Godot game',
       inputSchema: {
         type: 'object',
@@ -345,6 +465,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'capture_frames',
+      group: 'game',
       description: 'Capture frames from the game viewport for replay/inspection',
       inputSchema: {
         type: 'object',
@@ -354,6 +475,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'monitor_properties',
+      group: 'game',
       description: 'Start monitoring property changes on a node',
       inputSchema: {
         type: 'object',
@@ -364,18 +486,21 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'start_recording',
+      group: 'game',
       description: 'Start recording user input for replay',
       inputSchema: { type: 'object', properties: {} },
       handler: () => startRecording({}, projectRoot, bridge),
     },
     {
       name: 'stop_recording',
+      group: 'game',
       description: 'Stop recording and get the recorded input data',
       inputSchema: { type: 'object', properties: {} },
       handler: () => stopRecording({}, projectRoot, bridge),
     },
     {
       name: 'replay_recording',
+      group: 'game',
       description: 'Replay a previously recorded input sequence',
       inputSchema: {
         type: 'object',
@@ -384,9 +509,9 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       },
       handler: (args: Record<string, unknown>) => replayRecording(args as { data: unknown }, projectRoot, bridge),
     },
-    // Input tools (7)
     {
       name: 'simulate_key',
+      group: 'input',
       description: 'Simulate a keyboard key press or release',
       inputSchema: {
         type: 'object',
@@ -397,6 +522,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'simulate_mouse_click',
+      group: 'input',
       description: 'Simulate a mouse button click at a position',
       inputSchema: {
         type: 'object',
@@ -407,6 +533,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'simulate_mouse_move',
+      group: 'input',
       description: 'Simulate mouse movement to a position',
       inputSchema: {
         type: 'object',
@@ -417,6 +544,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'simulate_action',
+      group: 'input',
       description: 'Simulate an input action (e.g., "ui_accept")',
       inputSchema: {
         type: 'object',
@@ -427,6 +555,7 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'simulate_sequence',
+      group: 'input',
       description: 'Simulate a sequence of input events',
       inputSchema: {
         type: 'object',
@@ -437,12 +566,14 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
     },
     {
       name: 'get_input_actions',
+      group: 'input',
       description: 'Get list of all defined input actions',
       inputSchema: { type: 'object', properties: {} },
       handler: () => getInputActions({}, bridge),
     },
     {
       name: 'set_input_action',
+      group: 'input',
       description: 'Add or modify an input action with a new event',
       inputSchema: {
         type: 'object',
@@ -450,87 +581,6 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['action', 'event'],
       },
       handler: (args: Record<string, unknown>) => setInputAction(args as any, bridge),
-    },
-    // Node tools (8)
-    {
-      name: 'duplicate_node',
-      description: 'Duplicate a node in a scene with a new name',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
-        required: ['scene_path', 'node_path', 'new_name'],
-      },
-      handler: (args: Record<string, unknown>) => duplicateNode(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'move_node',
-      description: 'Move a node to a new parent in the scene tree',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_parent_path: { type: 'string' } },
-        required: ['scene_path', 'node_path', 'new_parent_path'],
-      },
-      handler: (args: Record<string, unknown>) => moveNode(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'connect_signal',
-      description: 'Connect a signal from one node to a method on another',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
-        required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
-      },
-      handler: (args: Record<string, unknown>) => connectSignal(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'disconnect_signal',
-      description: 'Disconnect a signal connection between nodes',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, signal: { type: 'string' }, target_path: { type: 'string' }, method: { type: 'string' } },
-        required: ['scene_path', 'node_path', 'signal', 'target_path', 'method'],
-      },
-      handler: (args: Record<string, unknown>) => disconnectSignal(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'get_node_groups',
-      description: 'Get all groups that a node belongs to',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' } },
-        required: ['scene_path', 'node_path'],
-      },
-      handler: (args: Record<string, unknown>) => getNodeGroups(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'set_node_groups',
-      description: 'Add or remove a node from groups',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, add_to_groups: { type: 'array', items: { type: 'string' } }, remove_from_groups: { type: 'array', items: { type: 'string' } } },
-        required: ['scene_path', 'node_path'],
-      },
-      handler: (args: Record<string, unknown>) => setNodeGroups(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'find_nodes_in_group',
-      description: 'Find all nodes that belong to a specific group',
-      inputSchema: {
-        type: 'object',
-        properties: { group: { type: 'string' } },
-        required: ['group'],
-      },
-      handler: (args: Record<string, unknown>) => findNodesInGroup(args as any, projectRoot, bridge),
-    },
-    {
-      name: 'rename_node',
-      description: 'Rename a node in a scene',
-      inputSchema: {
-        type: 'object',
-        properties: { scene_path: { type: 'string' }, node_path: { type: 'string' }, new_name: { type: 'string' } },
-        required: ['scene_path', 'node_path', 'new_name'],
-      },
-      handler: (args: Record<string, unknown>) => renameNode(args as any, projectRoot, bridge),
     },
   ];
 
@@ -553,4 +603,13 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       }
     },
   }));
+}
+
+export function getToolGroups(tools: ToolDefinition[]): Record<string, ToolDefinition[]> {
+  const groups: Record<string, ToolDefinition[]> = {};
+  for (const tool of tools) {
+    if (!groups[tool.group]) groups[tool.group] = [];
+    groups[tool.group].push(tool);
+  }
+  return groups;
 }

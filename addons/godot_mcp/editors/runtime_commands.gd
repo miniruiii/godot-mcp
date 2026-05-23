@@ -108,29 +108,62 @@ func set_node_property(params: Dictionary) -> Dictionary:
 	target.set(property, new_value)
 	return { "result": { "updated": true, "property": property, "value": Utils.value_to_string(new_value) } }
 
+# Helper: instantiate a script in an isolated call so that a runtime error
+# in script.new() aborts ONLY this helper (returning {}), not the caller.
+func _try_instantiate(script: Script) -> Dictionary:
+	var instance = script.new()
+	return { "instance": instance }
+
 func execute_script(params: Dictionary) -> Dictionary:
 	print("[MCP] game.execute_script")
 	var code = params.get("code", "")
 	if code == "":
 		return { "error": { "code": ERR_MISSING_CODE, "message": "Missing code parameter" } }
 
-	var script = GDScript.new()
-	script.source_code = code
+	# Path 1: Try Expression for simple expressions (fast, no file I/O)
+	var expr = Expression.new()
+	var expr_err = expr.parse(code)
+	if expr_err == OK:
+		var expr_result = expr.execute()
+		if not expr.has_execute_failed():
+			return { "result": { "executed": true, "value": expr_result } }
+		# Expression execute failed (e.g., unknown identifier) — fall through to GDScript path
 
-	var err = script.reload(false)
-	if err != OK:
+	# Path 2: Write to temp file and load as GDScript (supports full classes)
+	var temp_path = "user://mcp_execute_%d.gd" % Time.get_ticks_msec()
+	var file = FileAccess.open(temp_path, FileAccess.WRITE)
+	if file == null:
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Failed to create temp file: %s" % error_string(FileAccess.get_open_error()) } }
+	file.store_string(code)
+	file.close()
+
+	var script = load(temp_path)
+	if script == null or not script is GDScript:
+		DirAccess.remove_absolute(temp_path)
 		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed" } }
 
-	var instance = script.new()
+	# Isolate new() so runtime compilation errors abort the helper, not us
+	var inst_result = _try_instantiate(script)
+	if not inst_result.has("instance"):
+		DirAccess.remove_absolute(temp_path)
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed. Ensure the code is valid GDScript." } }
+
+	var instance = inst_result["instance"]
+	if instance == null:
+		DirAccess.remove_absolute(temp_path)
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Failed to create script instance" } }
+
+	var result = null
 	if instance.has_method("_ready"):
-		instance._ready()
+		result = instance._ready()
 
 	# RefCounted objects are auto-freed when ref_count reaches 0.
 	# Only Node-derived instances need explicit cleanup.
 	if instance is Node:
 		instance.queue_free()
 
-	return { "result": { "executed": true } }
+	DirAccess.remove_absolute(temp_path)
+	return { "result": { "executed": true, "value": result } }
 
 func find_nodes_by_script(params: Dictionary) -> Dictionary:
 	print("[MCP] game.find_nodes_by_script: script_path=%s" % params.get("script_path", ""))
@@ -170,7 +203,11 @@ func get_autoload(params: Dictionary) -> Dictionary:
 
 	var path = "autoload/" + name
 	if not ProjectSettings.has_setting(path):
-		return { "error": { "code": ERR_AUTOLOAD_NOT_FOUND, "message": "Autoload not found: %s" % name } }
+		var available = []
+		for property in ProjectSettings.get_property_list():
+			if property.name.begins_with("autoload/"):
+				available.append(property.name.trim_prefix("autoload/"))
+		return { "error": { "code": ERR_AUTOLOAD_NOT_FOUND, "message": "Autoload not found: %s. Available: %s" % [name, available] } }
 
 	var autoload_path = ProjectSettings.get_setting(path)
 	return { "result": { "name": name, "path": autoload_path } }
@@ -204,14 +241,19 @@ func find_ui_elements(params: Dictionary) -> Dictionary:
 
 	var search_text = params.get("text", "")
 	var control_type = params.get("type", "")
+	var max_depth = params.get("max_depth", 5)
+	if not max_depth is int or max_depth < 0:
+		max_depth = 5
 	var result = []
 
 	var root = main_loop.root
-	_find_ui_elements_recursive(root, search_text, control_type, result, "")
+	_find_ui_elements_recursive(root, search_text, control_type, result, "", 0, max_depth)
 
 	return { "result": { "elements": result } }
 
-func _find_ui_elements_recursive(node: Node, search_text: String, control_type: String, out: Array, path: String) -> void:
+func _find_ui_elements_recursive(node: Node, search_text: String, control_type: String, out: Array, path: String, depth: int, max_depth: int) -> void:
+	if depth > max_depth:
+		return
 	if node is Control:
 		var matches = true
 		if control_type != "" and not node.get_class() == control_type:
@@ -232,7 +274,7 @@ func _find_ui_elements_recursive(node: Node, search_text: String, control_type: 
 
 	for child in node.get_children():
 		var child_path = path + "/" + child.name if path != "" else "/" + child.name
-		_find_ui_elements_recursive(child, search_text, control_type, out, child_path)
+		_find_ui_elements_recursive(child, search_text, control_type, out, child_path, depth + 1, max_depth)
 
 func click_button_by_text(params: Dictionary) -> Dictionary:
 	print("[MCP] game.click_button_by_text: text=%s" % params.get("text", ""))
@@ -376,11 +418,24 @@ func capture_frames(params: Dictionary) -> Dictionary:
 	if img == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "Failed to capture image" } }
 
-	# Save as PNG to reduce size, then encode as base64 for JSON transport
-	var png_buffer = img.save_png_to_buffer()
-	var base64_data = Marshalls.raw_to_base64(png_buffer)
+	# Resize to avoid huge payloads and timeout during encoding
+	var max_dim = 800
+	if img.get_width() > max_dim or img.get_height() > max_dim:
+		var new_width = img.get_width()
+		var new_height = img.get_height()
+		if new_width > new_height:
+			new_height = int(new_height * max_dim / float(new_width))
+			new_width = max_dim
+		else:
+			new_width = int(new_width * max_dim / float(new_height))
+			new_height = max_dim
+		img.resize(new_width, new_height)
 
-	return { "result": { "captured": 1, "format": "png", "data": base64_data } }
+	# Use JPEG for significantly smaller payload than PNG
+	var jpg_buffer = img.save_jpg_to_buffer(0.85)
+	var base64_data = Marshalls.raw_to_base64(jpg_buffer)
+
+	return { "result": { "captured": 1, "format": "jpg", "data": base64_data } }
 
 func monitor_properties(params: Dictionary) -> Dictionary:
 	print("[MCP] game.monitor_properties: node_path=%s properties=%s" % [params.get("node_path", ""), params.get("properties", [])])

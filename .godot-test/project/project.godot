@@ -10,8 +10,9 @@ config_version=5
 
 [application]
 
-name="Godot MCP Test"
 run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6")
+name="Godot MCP Test"
 
 [display]
 
@@ -21,6 +22,6 @@ driver/windowers/editor/main_window_mode=0
 
 plugin/forbidden_on_first_run=""
 
-[rendering]
+[editor_plugins]
 
-renderer/rendering_method="forward_plus"
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")

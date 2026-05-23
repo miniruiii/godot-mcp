@@ -45,6 +45,9 @@ func add_node(params: Dictionary) -> Dictionary:
     var node_type = params.get("node_type", "Node")
     var node_name = params.get("node_name", "")
 
+    if EditorInterface.get_edited_scene_root() == null:
+        return { "error": { "code": -32001, "message": "No scene is currently open in the editor. Open a scene first." } }
+
     var parent = _find_node_by_path(parent_path)
     if parent == null:
         return { "error": { "code": -32001, "message": "Parent node not found: %s" % parent_path } }
@@ -69,6 +72,10 @@ func add_node(params: Dictionary) -> Dictionary:
 
 func remove_node(params: Dictionary) -> Dictionary:
     var node_path = params.get("node_path", "")
+
+    if EditorInterface.get_edited_scene_root() == null:
+        return { "error": { "code": -32001, "message": "No scene is currently open in the editor. Open a scene first." } }
+
     var target = _find_node_by_path(node_path)
     if target == null:
         return { "error": { "code": -32001, "message": "Node not found: %s" % node_path } }
@@ -130,3 +137,198 @@ func _find_node_by_path(path: String) -> Node:
 
     var relative = path.trim_prefix("/root/" + root.name + "/")
     return root.get_node_or_null(NodePath(relative))
+
+func duplicate_node(params: Dictionary) -> Dictionary:
+    print("[MCP] duplicate_node: node_path=%s new_name=%s" % [params.get("node_path", ""), params.get("new_name", "")])
+    var node_path = params.get("node_path", "")
+    var new_name = params.get("new_name", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    var parent = target.get_parent()
+    if parent == null:
+        return { "error": { "code": -32602, "message": "Node has no parent: %s" % node_path } }
+
+    var duplicated = target.duplicate()
+    if duplicated == null:
+        return { "error": { "code": -32602, "message": "Failed to duplicate node: %s" % node_path } }
+
+    if new_name == "":
+        new_name = target.name + "_copy"
+    duplicated.name = new_name
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Duplicate Node via MCP")
+    undo.add_do_method(parent, "add_child", duplicated, true)
+    undo.add_undo_method(parent, "remove_child", duplicated)
+    undo.add_do_method(duplicated, "set_owner", EditorInterface.get_edited_scene_root())
+    undo.add_undo_method(duplicated, "set_owner", target)
+    undo.commit_action()
+
+    EditorInterface.save_scene()
+    return { "result": { "duplicated": true, "new_path": str(parent.get_path()) + "/" + duplicated.name } }
+
+func move_node(params: Dictionary) -> Dictionary:
+    print("[MCP] move_node: node_path=%s new_parent=%s" % [params.get("node_path", ""), params.get("new_parent_path", "")])
+    var node_path = params.get("node_path", "")
+    var new_parent_path = params.get("new_parent_path", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    var new_parent = _find_node_by_path(new_parent_path)
+    if new_parent == null:
+        return { "error": { "code": -32602, "message": "New parent not found: %s" % new_parent_path } }
+
+    # Prevent moving a node to become its own descendant
+    var check_node = new_parent
+    while check_node != null:
+        if check_node == target:
+            return { "error": { "code": -32602, "message": "Cannot move node to become its own descendant" } }
+        check_node = check_node.get_parent()
+
+    var old_parent = target.get_parent()
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Move Node via MCP")
+    undo.add_do_method(target, "reparent", new_parent, true)
+    undo.add_undo_method(target, "reparent", old_parent, true)
+    undo.commit_action()
+
+    EditorInterface.save_scene()
+    return { "result": { "moved": true, "node_path": node_path, "new_parent": new_parent_path } }
+
+func connect_signal(params: Dictionary) -> Dictionary:
+    print("[MCP] connect_signal: node_path=%s signal=%s target=%s method=%s" % [params.get("node_path", ""), params.get("signal", ""), params.get("target_path", ""), params.get("method", "")])
+    var node_path = params.get("node_path", "")
+    var signal_name = params.get("signal", "")
+    var target_path = params.get("target_path", "")
+    var method = params.get("method", "")
+
+    var source = _find_node_by_path(node_path)
+    if source == null:
+        return { "error": { "code": -32602, "message": "Source node not found: %s" % node_path } }
+
+    var target = _find_node_by_path(target_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Target node not found: %s" % target_path } }
+
+    if signal_name == "":
+        return { "error": { "code": -32600, "message": "Missing signal name" } }
+
+    if method == "":
+        return { "error": { "code": -32600, "message": "Missing method name" } }
+
+    if not source.has_signal(signal_name):
+        return { "error": { "code": -32602, "message": "Signal '%s' not found on node: %s" % [signal_name, node_path] } }
+
+    var callable = Callable(target, method)
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Connect Signal via MCP")
+    undo.add_do_method(source, "connect", signal_name, callable)
+    undo.add_undo_method(source, "disconnect", signal_name, callable)
+    undo.commit_action()
+
+    EditorInterface.save_scene()
+    return { "result": { "connected": true } }
+
+func disconnect_signal(params: Dictionary) -> Dictionary:
+    print("[MCP] disconnect_signal: node_path=%s signal=%s target=%s method=%s" % [params.get("node_path", ""), params.get("signal", ""), params.get("target_path", ""), params.get("method", "")])
+    var node_path = params.get("node_path", "")
+    var signal_name = params.get("signal", "")
+    var target_path = params.get("target_path", "")
+    var method = params.get("method", "")
+
+    var source = _find_node_by_path(node_path)
+    if source == null:
+        return { "error": { "code": -32602, "message": "Source node not found: %s" % node_path } }
+
+    var target = _find_node_by_path(target_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Target node not found: %s" % target_path } }
+
+    if signal_name == "":
+        return { "error": { "code": -32600, "message": "Missing signal name" } }
+
+    if method == "":
+        return { "error": { "code": -32600, "message": "Missing method name" } }
+
+    var callable = Callable(target, method)
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Disconnect Signal via MCP")
+    undo.add_do_method(source, "disconnect", signal_name, callable)
+    undo.add_undo_method(source, "connect", signal_name, callable)
+    undo.commit_action()
+
+    EditorInterface.save_scene()
+    return { "result": { "disconnected": true } }
+
+func rename_node(params: Dictionary) -> Dictionary:
+    print("[MCP] rename_node: node_path=%s new_name=%s" % [params.get("node_path", ""), params.get("new_name", "")])
+    var node_path = params.get("node_path", "")
+    var new_name = params.get("new_name", "")
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    if new_name == "":
+        return { "error": { "code": -32600, "message": "Missing new_name" } }
+
+    var old_name = target.name
+
+    var undo = EditorInterface.get_editor_undo_redo()
+    undo.create_action("Rename Node via MCP")
+    undo.add_do_property(target, "name", new_name)
+    undo.add_undo_property(target, "name", old_name)
+    undo.commit_action()
+
+    EditorInterface.save_scene()
+    return { "result": { "renamed": true, "new_name": new_name } }
+
+func get_node_groups(params: Dictionary) -> Dictionary:
+    print("[MCP] get_node_groups: node_path=%s" % params.get("node_path", ""))
+    var node_path = params.get("node_path", "")
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+    return { "result": { "groups": target.get_groups() } }
+
+func set_node_groups(params: Dictionary) -> Dictionary:
+    print("[MCP] set_node_groups: node_path=%s add=%s remove=%s" % [params.get("node_path", ""), params.get("add_to_groups", []), params.get("remove_from_groups", [])])
+    var node_path = params.get("node_path", "")
+    var add_to_groups = params.get("add_to_groups", [])
+    var remove_from_groups = params.get("remove_from_groups", [])
+
+    var target = _find_node_by_path(node_path)
+    if target == null:
+        return { "error": { "code": -32602, "message": "Node not found: %s" % node_path } }
+
+    for group in add_to_groups:
+        target.add_to_group(group)
+    for group in remove_from_groups:
+        target.remove_from_group(group)
+
+    EditorInterface.save_scene()
+    return { "result": { "success": true } }
+
+func find_nodes_in_group(params: Dictionary) -> Dictionary:
+    print("[MCP] find_nodes_in_group: group=%s" % params.get("group", ""))
+    var group = params.get("group", "")
+    if group == "":
+        return { "error": { "code": -32600, "message": "Missing group name" } }
+
+    var root = EditorInterface.get_edited_scene_root()
+    if root == null:
+        return { "error": { "code": -32000, "message": "No scene is currently open" } }
+
+    var result = []
+    for node in root.get_tree().get_nodes_in_group(group):
+        result.append(str(node.get_path()))
+
+    return { "result": { "node_paths": result } }
