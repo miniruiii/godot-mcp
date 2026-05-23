@@ -170,7 +170,11 @@ func get_autoload(params: Dictionary) -> Dictionary:
 
 	var path = "autoload/" + name
 	if not ProjectSettings.has_setting(path):
-		return { "error": { "code": ERR_AUTOLOAD_NOT_FOUND, "message": "Autoload not found: %s" % name } }
+		var available = []
+		for property in ProjectSettings.get_property_list():
+			if property.name.begins_with("autoload/"):
+				available.append(property.name.trim_prefix("autoload/"))
+		return { "error": { "code": ERR_AUTOLOAD_NOT_FOUND, "message": "Autoload not found: %s. Available: %s" % [name, available] } }
 
 	var autoload_path = ProjectSettings.get_setting(path)
 	return { "result": { "name": name, "path": autoload_path } }
@@ -204,14 +208,19 @@ func find_ui_elements(params: Dictionary) -> Dictionary:
 
 	var search_text = params.get("text", "")
 	var control_type = params.get("type", "")
+	var max_depth = params.get("max_depth", 5)
+	if not max_depth is int or max_depth < 0:
+		max_depth = 5
 	var result = []
 
 	var root = main_loop.root
-	_find_ui_elements_recursive(root, search_text, control_type, result, "")
+	_find_ui_elements_recursive(root, search_text, control_type, result, "", 0, max_depth)
 
 	return { "result": { "elements": result } }
 
-func _find_ui_elements_recursive(node: Node, search_text: String, control_type: String, out: Array, path: String) -> void:
+func _find_ui_elements_recursive(node: Node, search_text: String, control_type: String, out: Array, path: String, depth: int, max_depth: int) -> void:
+	if depth > max_depth:
+		return
 	if node is Control:
 		var matches = true
 		if control_type != "" and not node.get_class() == control_type:
@@ -232,7 +241,7 @@ func _find_ui_elements_recursive(node: Node, search_text: String, control_type: 
 
 	for child in node.get_children():
 		var child_path = path + "/" + child.name if path != "" else "/" + child.name
-		_find_ui_elements_recursive(child, search_text, control_type, out, child_path)
+		_find_ui_elements_recursive(child, search_text, control_type, out, child_path, depth + 1, max_depth)
 
 func click_button_by_text(params: Dictionary) -> Dictionary:
 	print("[MCP] game.click_button_by_text: text=%s" % params.get("text", ""))
