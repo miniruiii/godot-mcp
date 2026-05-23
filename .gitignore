@@ -10,3 +10,4 @@ coverage/
 tmp/
 Thumbs.db
 .godot-test/
+docs/
