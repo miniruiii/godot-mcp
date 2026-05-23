@@ -1,5 +1,32 @@
 import { readdirSync, statSync, readFileSync, existsSync } from 'fs';
-import { join, relative } from 'path';
+import { join, relative, resolve } from 'path';
+
+function resolveProjectRoot(rawPath: string): string {
+  const base = resolve(rawPath);
+  // If project.godot exists at the configured path, use it directly
+  if (existsSync(join(base, 'project.godot'))) {
+    return base;
+  }
+  // Try to find project.godot in subdirectories (up to 2 levels deep)
+  try {
+    for (const entry of readdirSync(base)) {
+      const level1 = join(base, entry);
+      if (!statSync(level1).isDirectory()) continue;
+      if (existsSync(join(level1, 'project.godot'))) {
+        return level1;
+      }
+      for (const sub of readdirSync(level1)) {
+        const level2 = join(level1, sub);
+        if (statSync(level2).isDirectory() && existsSync(join(level2, 'project.godot'))) {
+          return level2;
+        }
+      }
+    }
+  } catch {
+    // Ignore read errors and fall back to original path
+  }
+  return base;
+}
 
 export interface ListFilesArgs {
   extension?: string;
@@ -40,13 +67,15 @@ export interface ProjectSettingsResult {
 }
 
 export function readProjectSettings(_args: Record<string, unknown>, projectRoot: string): ProjectSettingsResult {
-  const path = join(projectRoot, 'project.godot');
+  const root = resolveProjectRoot(projectRoot);
+  const path = join(root, 'project.godot');
   if (!existsSync(path)) {
     throw new Error('project.godot not found');
   }
 
   const content = readFileSync(path, 'utf-8');
-  const nameMatch = content.match(/config\/name="([^"]+)"/);
+  // Godot 4.x uses either config/name="..." or [application] section with name="..."
+  const nameMatch = content.match(/(?:^|\n)(?:config\/)?name="([^"]+)"/m);
   const featuresMatch = content.match(/config\/features=PackedStringArray\(([^)]+)\)/);
   const renderingMatch = content.match(/renderer\/rendering_method="([^"]+)"/);
 

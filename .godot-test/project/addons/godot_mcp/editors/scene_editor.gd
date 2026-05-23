@@ -45,6 +45,9 @@ func add_node(params: Dictionary) -> Dictionary:
     var node_type = params.get("node_type", "Node")
     var node_name = params.get("node_name", "")
 
+    if EditorInterface.get_edited_scene_root() == null:
+        return { "error": { "code": -32001, "message": "No scene is currently open in the editor. Open a scene first." } }
+
     var parent = _find_node_by_path(parent_path)
     if parent == null:
         return { "error": { "code": -32001, "message": "Parent node not found: %s" % parent_path } }
@@ -69,6 +72,10 @@ func add_node(params: Dictionary) -> Dictionary:
 
 func remove_node(params: Dictionary) -> Dictionary:
     var node_path = params.get("node_path", "")
+
+    if EditorInterface.get_edited_scene_root() == null:
+        return { "error": { "code": -32001, "message": "No scene is currently open in the editor. Open a scene first." } }
+
     var target = _find_node_by_path(node_path)
     if target == null:
         return { "error": { "code": -32001, "message": "Node not found: %s" % node_path } }
