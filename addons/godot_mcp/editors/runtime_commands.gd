@@ -132,9 +132,9 @@ func execute_script(params: Dictionary) -> Dictionary:
 	file.close()
 
 	var script = load(temp_path)
-	if script == null:
+	if script == null or not (script is Script and script.can_instantiate()):
 		DirAccess.remove_absolute(temp_path)
-		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed (Expression: %s)" % error_string(expr_err) } }
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed. Ensure the code is valid GDScript." } }
 
 	var instance = script.new()
 	if instance == null:
