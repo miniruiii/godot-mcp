@@ -108,6 +108,12 @@ func set_node_property(params: Dictionary) -> Dictionary:
 	target.set(property, new_value)
 	return { "result": { "updated": true, "property": property, "value": Utils.value_to_string(new_value) } }
 
+# Helper: instantiate a script in an isolated call so that a runtime error
+# in script.new() aborts ONLY this helper (returning {}), not the caller.
+func _try_instantiate(script: Script) -> Dictionary:
+	var instance = script.new()
+	return { "instance": instance }
+
 func execute_script(params: Dictionary) -> Dictionary:
 	print("[MCP] game.execute_script")
 	var code = params.get("code", "")
@@ -132,11 +138,17 @@ func execute_script(params: Dictionary) -> Dictionary:
 	file.close()
 
 	var script = load(temp_path)
-	if script == null or not (script is Script and script.can_instantiate()):
+	if script == null or not script is GDScript:
+		DirAccess.remove_absolute(temp_path)
+		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed" } }
+
+	# Isolate new() so runtime compilation errors abort the helper, not us
+	var inst_result = _try_instantiate(script)
+	if not inst_result.has("instance"):
 		DirAccess.remove_absolute(temp_path)
 		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Script compilation failed. Ensure the code is valid GDScript." } }
 
-	var instance = script.new()
+	var instance = inst_result["instance"]
 	if instance == null:
 		DirAccess.remove_absolute(temp_path)
 		return { "error": { "code": ERR_SCRIPT_COMPILATION_FAILED, "message": "Failed to create script instance" } }
@@ -406,11 +418,24 @@ func capture_frames(params: Dictionary) -> Dictionary:
 	if img == null:
 		return { "error": { "code": ERR_NO_MAIN_LOOP, "message": "Failed to capture image" } }
 
-	# Save as PNG to reduce size, then encode as base64 for JSON transport
-	var png_buffer = img.save_png_to_buffer()
-	var base64_data = Marshalls.raw_to_base64(png_buffer)
+	# Resize to avoid huge payloads and timeout during encoding
+	var max_dim = 800
+	if img.get_width() > max_dim or img.get_height() > max_dim:
+		var new_width = img.get_width()
+		var new_height = img.get_height()
+		if new_width > new_height:
+			new_height = int(new_height * max_dim / float(new_width))
+			new_width = max_dim
+		else:
+			new_width = int(new_width * max_dim / float(new_height))
+			new_height = max_dim
+		img.resize(new_width, new_height)
 
-	return { "result": { "captured": 1, "format": "png", "data": base64_data } }
+	# Use JPEG for significantly smaller payload than PNG
+	var jpg_buffer = img.save_jpg_to_buffer(0.85)
+	var base64_data = Marshalls.raw_to_base64(jpg_buffer)
+
+	return { "result": { "captured": 1, "format": "jpg", "data": base64_data } }
 
 func monitor_properties(params: Dictionary) -> Dictionary:
 	print("[MCP] game.monitor_properties: node_path=%s properties=%s" % [params.get("node_path", ""), params.get("properties", [])])
