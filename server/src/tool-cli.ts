@@ -72,27 +72,42 @@ export function parseCliFlags(args: string[]): Record<string, unknown> {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith('--')) continue;
-    const raw = arg.slice(2);
+
+    // Handle --key=value format
+    const rawEqualsIdx = arg.indexOf('=');
+    let raw: string;
+    let value: unknown;
+
+    if (rawEqualsIdx !== -1) {
+      // --key=value format
+      raw = arg.slice(2, rawEqualsIdx);
+      const rawValue = arg.slice(rawEqualsIdx + 1);
+      try {
+        value = JSON.parse(rawValue);
+      } catch {
+        value = rawValue;
+      }
+    } else {
+      // --key value format
+      raw = arg.slice(2);
+      const next = args[i + 1];
+      if (next && !next.startsWith('--')) {
+        try {
+          value = JSON.parse(next);
+        } catch {
+          value = next;
+        }
+        i++;
+      } else {
+        value = true;
+      }
+    }
+
     const keyCamel = kebabToCamel(raw);
     const keySnake = kebabToSnake(raw);
-    const next = args[i + 1];
-    if (next && !next.startsWith('--')) {
-      let value: unknown;
-      try {
-        value = JSON.parse(next);
-      } catch {
-        value = next;
-      }
-      params[keyCamel] = value;
-      if (keySnake !== keyCamel) {
-        params[keySnake] = value;
-      }
-      i++;
-    } else {
-      params[keyCamel] = true;
-      if (keySnake !== keyCamel) {
-        params[keySnake] = true;
-      }
+    params[keyCamel] = value;
+    if (keySnake !== keyCamel) {
+      params[keySnake] = value;
     }
   }
   return params;
@@ -224,6 +239,19 @@ async function main(): Promise<void> {
   await Promise.race([connectPromise, new Promise((r) => setTimeout(r, 500))]);
 
   const params = parseCliFlags(args.slice(2));
+
+  // Normalize node_path for game commands (strip any path prefixes that got added)
+  if (params.node_path && typeof params.node_path === 'string') {
+    // If node_path contains '/root' somewhere, extract just that part
+    const match = params.node_path.match(/\/root(?:\/[^\/]+)*/);
+    if (match) {
+      params.node_path = match[0];
+      // Also update camelCase version if present
+      if (params.nodePath) {
+        params.nodePath = match[0];
+      }
+    }
+  }
 
   try {
     const result = await tool.handler(params);
