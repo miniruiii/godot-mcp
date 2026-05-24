@@ -2,7 +2,7 @@ import type { GodotBridge } from '../godot-bridge.js';
 import type { Config } from '../config.js';
 import { mcpLog, formatArgs } from './log.js';
 import { readFileTool, writeFileTool } from './file.js';
-import { listProjectFiles, readProjectSettings, getProjectInfo } from './project.js';
+import { listProjectFiles, readProjectSettings, getProjectInfo, uidToProjectPath, projectPathToUid } from './project.js';
 import { readScene, createScene, saveScene, openScene } from './scene.js';
 import {
   getSceneTree, getNode, addNode, removeNode, updateProperty,
@@ -57,6 +57,28 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
       description: 'Get project metadata: engine version, rendering backend',
       inputSchema: { type: 'object', properties: {} },
       handler: () => getProjectInfo({}, projectRoot),
+    },
+    {
+      name: 'uid_to_project_path',
+      group: 'project',
+      description: 'Convert a UID to its res:// path',
+      inputSchema: {
+        type: 'object',
+        properties: { uid: { type: 'string', description: 'The UID to convert (e.g. uid://j458wps55wo0)' } },
+        required: ['uid'],
+      },
+      handler: (args: Record<string, unknown>) => uidToProjectPath(args as { uid: string }, bridge),
+    },
+    {
+      name: 'project_path_to_uid',
+      group: 'project',
+      description: 'Convert a res:// path to its UID',
+      inputSchema: {
+        type: 'object',
+        properties: { path: { type: 'string', description: 'The resource path (e.g. res://scripts/main.gd)' } },
+        required: ['path'],
+      },
+      handler: (args: Record<string, unknown>) => projectPathToUid(args as { path: string }, bridge),
     },
     {
       name: 'read_scene',
