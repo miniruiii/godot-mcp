@@ -110,7 +110,9 @@ func remove_uid(params: Dictionary) -> Dictionary:
 func rescan_resources(params: Dictionary) -> Dictionary:
     print("[MCP] rescan_resources")
     if Engine.is_editor_hint():
-        EditorInterface.get_resource_filesystem().scan()
+        var efs = EditorInterface.get_resource_filesystem()
+        efs.scan()
+        await efs.filesystem_changed
         return { "result": { "scanned": true } }
     else:
         return { "error": { "code": -32002, "message": "只能在编辑器中执行此操作" } }

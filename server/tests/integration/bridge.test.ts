@@ -24,6 +24,14 @@ describe('MCP bridge integration', () => {
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { saved: true } }));
         } else if (msg.method === 'project.run') {
           ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { running: true } }));
+        } else if (msg.method === 'project.uid_to_path') {
+          ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { uid: msg.params.uid, path: 'res://test.gd' } }));
+        } else if (msg.method === 'project.path_to_uid') {
+          ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { path: msg.params.path, uid: 'uid://abc123' } }));
+        } else if (msg.method === 'project.rescan_resources') {
+          ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { scanned: true } }));
+        } else if (msg.method === 'project.remove_uid') {
+          ws.send(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { uid: msg.params.uid, path: 'res://test.gd', removed: true } }));
         }
       });
     });
@@ -41,10 +49,10 @@ describe('MCP bridge integration', () => {
     expect(bridge.getGodotVersion()).toBe('4.6.2');
   });
 
-  it('has 54 tools registered', () => {
+  it('has 56 tools registered', () => {
     const config = loadConfig('nonexistent.json');
     const tools = buildToolRegistry(config, bridge);
-    expect(tools.length).toBe(54);
+    expect(tools.length).toBe(56);
   });
 
   it('save_scene succeeds when bridge is connected', async () => {
