@@ -10,6 +10,8 @@ export const COMMAND_MAP: Record<string, string> = {
   'project info': 'get_project_info',
   'project uid-to-path': 'uid_to_project_path',
   'project path-to-uid': 'project_path_to_uid',
+  'project rescan': 'rescan_resources',
+  'project remove-uid': 'remove_uid',
   'scene read': 'read_scene',
   'scene create': 'create_scene',
   'scene save': 'save_scene',

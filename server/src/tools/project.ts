@@ -115,3 +115,11 @@ export async function uidToProjectPath(args: { uid: string }, bridge: GodotBridg
 export async function projectPathToUid(args: { path: string }, bridge: GodotBridge): Promise<{ path: string; uid: string }> {
   return bridge.call('project.path_to_uid', args) as Promise<{ path: string; uid: string }>;
 }
+
+export async function rescanResources(_args: Record<string, unknown>, bridge: GodotBridge): Promise<{ scanned: boolean }> {
+  return bridge.call('project.rescan_resources', _args) as Promise<{ scanned: boolean }>;
+}
+
+export async function removeUid(args: { uid: string }, bridge: GodotBridge): Promise<{ uid: string; path: string; removed: boolean }> {
+  return bridge.call('project.remove_uid', args) as Promise<{ uid: string; path: string; removed: boolean }>;
+}

@@ -94,6 +94,28 @@ func get_settings() -> Dictionary:
     return { "result": settings }
 
 
+func remove_uid(params: Dictionary) -> Dictionary:
+    print("[MCP] remove_uid")
+    var uid_str = params.get("uid", "")
+    if uid_str == "":
+        return { "error": { "code": -32602, "message": "Missing uid parameter" } }
+    var uid = ResourceUID.text_to_id(uid_str)
+    if not ResourceUID.has_id(uid):
+        return { "error": { "code": -404, "message": "UID '%s' not found" % uid_str } }
+    var path = ResourceUID.get_id_path(uid)
+    ResourceUID.remove_id(uid)
+    return { "result": { "uid": uid_str, "path": path, "removed": true } }
+
+
+func rescan_resources(params: Dictionary) -> Dictionary:
+    print("[MCP] rescan_resources")
+    if Engine.is_editor_hint():
+        EditorInterface.get_resource_filesystem().scan()
+        return { "result": { "scanned": true } }
+    else:
+        return { "error": { "code": -32002, "message": "只能在编辑器中执行此操作" } }
+
+
 func uid_to_project_path(params: Dictionary) -> Dictionary:
     var uid_str = params.get("uid", "")
     if uid_str == "":

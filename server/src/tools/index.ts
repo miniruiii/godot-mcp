@@ -2,7 +2,7 @@ import type { GodotBridge } from '../godot-bridge.js';
 import type { Config } from '../config.js';
 import { mcpLog, formatArgs } from './log.js';
 import { readFileTool, writeFileTool } from './file.js';
-import { listProjectFiles, readProjectSettings, getProjectInfo, uidToProjectPath, projectPathToUid } from './project.js';
+import { listProjectFiles, readProjectSettings, getProjectInfo, uidToProjectPath, projectPathToUid, rescanResources, removeUid } from './project.js';
 import { readScene, createScene, saveScene, openScene } from './scene.js';
 import {
   getSceneTree, getNode, addNode, removeNode, updateProperty,
@@ -79,6 +79,27 @@ export function buildToolRegistry(config: Config, bridge: GodotBridge): ToolDefi
         required: ['path'],
       },
       handler: (args: Record<string, unknown>) => projectPathToUid(args as { path: string }, bridge),
+    },
+    {
+      name: 'rescan_resources',
+      group: 'project',
+      description: 'Trigger Godot to rescan and register all resources (assign UIDs to new files)',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: (args: Record<string, unknown>) => rescanResources(args, bridge),
+    },
+    {
+      name: 'remove_uid',
+      group: 'project',
+      description: 'Remove a UID from the resource registry (use after deleting a resource file)',
+      inputSchema: {
+        type: 'object',
+        properties: { uid: { type: 'string', description: 'The UID to remove (e.g. uid://abc123)' } },
+        required: ['uid'],
+      },
+      handler: (args: Record<string, unknown>) => removeUid(args as { uid: string }, bridge),
     },
     {
       name: 'read_scene',
