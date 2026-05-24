@@ -107,13 +107,11 @@ func remove_uid(params: Dictionary) -> Dictionary:
     return { "result": { "uid": uid_str, "path": path, "removed": true } }
 
 
-async func rescan_resources(params: Dictionary) -> Dictionary:
+func rescan_resources(params: Dictionary) -> Dictionary:
     print("[MCP] rescan_resources")
     if Engine.is_editor_hint():
-        var efs = EditorInterface.get_resource_filesystem()
-        efs.scan()
-        await efs.filesystem_changed
-        return { "result": { "scanned": true } }
+        EditorInterface.get_resource_filesystem().scan()
+        return { "result": { "scanned": true, "note": "Scan initiated asynchronously" } }
     else:
         return { "error": { "code": -32002, "message": "This operation is only available in the Godot editor" } }
 

@@ -89,7 +89,7 @@ func _route(method: String, params: Dictionary) -> Dictionary:
         "project.path_to_uid":
             return project_editor_inst.project_path_to_uid(params)
         "project.rescan_resources":
-            return await project_editor_inst.rescan_resources(params)
+            return project_editor_inst.rescan_resources(params)
         "project.remove_uid":
             return project_editor_inst.remove_uid(params)
         "handshake":
