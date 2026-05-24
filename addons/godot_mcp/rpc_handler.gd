@@ -57,7 +57,7 @@ func handle(message: String) -> String:
 func _route(method: String, params: Dictionary) -> Dictionary:
     match method:
         "scene.get_tree":
-            return scene_editor_inst.get_tree(params)
+            return await scene_editor_inst.get_tree(params)
         "scene.add_node":
             return scene_editor_inst.add_node(params)
         "scene.remove_node":
@@ -84,6 +84,14 @@ func _route(method: String, params: Dictionary) -> Dictionary:
             return project_editor_inst.get_settings()
         "project.get_info":
             return { "result": Utils.get_engine_info() }
+        "project.uid_to_path":
+            return project_editor_inst.uid_to_project_path(params)
+        "project.path_to_uid":
+            return project_editor_inst.project_path_to_uid(params)
+        "project.rescan_resources":
+            return project_editor_inst.rescan_resources(params)
+        "project.remove_uid":
+            return project_editor_inst.remove_uid(params)
         "handshake":
             return { "result": { "version": Utils.PLUGIN_VERSION, "godot_version": Engine.get_version_info()["string"] } }
         # game.* routes for runtime commands (19 tools)

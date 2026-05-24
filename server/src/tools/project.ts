@@ -1,5 +1,6 @@
 import { readdirSync, statSync, readFileSync, existsSync } from 'fs';
 import { join, relative, resolve } from 'path';
+import type { GodotBridge } from '../godot-bridge.js';
 
 function resolveProjectRoot(rawPath: string): string {
   const base = resolve(rawPath);
@@ -105,4 +106,20 @@ export function getProjectInfo(_args: Record<string, unknown>, projectRoot: stri
     engineVersion: godotVersion,
     rendering: settings.rendering,
   };
+}
+
+export async function uidToProjectPath(args: { uid: string }, bridge: GodotBridge): Promise<{ uid: string; path: string }> {
+  return bridge.call('project.uid_to_path', args) as Promise<{ uid: string; path: string }>;
+}
+
+export async function projectPathToUid(args: { path: string }, bridge: GodotBridge): Promise<{ path: string; uid: string }> {
+  return bridge.call('project.path_to_uid', args) as Promise<{ path: string; uid: string }>;
+}
+
+export async function rescanResources(_args: Record<string, unknown>, bridge: GodotBridge): Promise<{ scanned: boolean }> {
+  return bridge.call('project.rescan_resources', _args) as Promise<{ scanned: boolean }>;
+}
+
+export async function removeUid(args: { uid: string }, bridge: GodotBridge): Promise<{ uid: string; path: string; removed: boolean }> {
+  return bridge.call('project.remove_uid', args) as Promise<{ uid: string; path: string; removed: boolean }>;
 }
