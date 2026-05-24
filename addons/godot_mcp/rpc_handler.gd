@@ -57,7 +57,7 @@ func handle(message: String) -> String:
 func _route(method: String, params: Dictionary) -> Dictionary:
     match method:
         "scene.get_tree":
-            return scene_editor_inst.get_tree(params)
+            return await scene_editor_inst.get_tree(params)
         "scene.add_node":
             return scene_editor_inst.add_node(params)
         "scene.remove_node":
@@ -89,7 +89,7 @@ func _route(method: String, params: Dictionary) -> Dictionary:
         "project.path_to_uid":
             return project_editor_inst.project_path_to_uid(params)
         "project.rescan_resources":
-            return project_editor_inst.rescan_resources(params)
+            return await project_editor_inst.rescan_resources(params)
         "project.remove_uid":
             return project_editor_inst.remove_uid(params)
         "handshake":
