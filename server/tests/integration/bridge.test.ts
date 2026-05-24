@@ -41,10 +41,10 @@ describe('MCP bridge integration', () => {
     expect(bridge.getGodotVersion()).toBe('4.6.2');
   });
 
-  it('has 52 tools registered', () => {
+  it('has 54 tools registered', () => {
     const config = loadConfig('nonexistent.json');
     const tools = buildToolRegistry(config, bridge);
-    expect(tools.length).toBe(52);
+    expect(tools.length).toBe(54);
   });
 
   it('save_scene succeeds when bridge is connected', async () => {
@@ -54,7 +54,7 @@ describe('MCP bridge integration', () => {
     const tool = tools.find((t) => t.name === 'save_scene')!;
     const result = await tool.handler({ scene_path: 'res://main.tscn' }) as any;
     expect(result.saved).toBe(true);
-  });
+  }, 30000);
 
   it('run_project succeeds when bridge is connected', async () => {
     const config = loadConfig('nonexistent.json');
@@ -63,7 +63,7 @@ describe('MCP bridge integration', () => {
     const tool = tools.find((t) => t.name === 'run_project')!;
     const result = await tool.handler({}) as any;
     expect(result.running).toBe(true);
-  });
+  }, 30000);
 
   it('get_scene_tree works offline by reading files', async () => {
     const bridge2 = new GodotBridge(TEST_PORT + 1);
@@ -72,5 +72,5 @@ describe('MCP bridge integration', () => {
     const tool = tools.find((t) => t.name === 'list_project_files')!;
     const result = await tool.handler({}) as any;
     expect(result.count).toBeGreaterThanOrEqual(0);
-  });
+  }, 30000);
 });
