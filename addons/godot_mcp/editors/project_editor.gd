@@ -94,7 +94,7 @@ func get_settings() -> Dictionary:
     return { "result": settings }
 
 
-func _uid_to_project_path(params: Dictionary) -> Dictionary:
+func uid_to_project_path(params: Dictionary) -> Dictionary:
     var uid_str = params.get("uid", "")
     if uid_str == "":
         return { "error": { "code": -32602, "message": "Missing uid parameter" } }
@@ -107,7 +107,7 @@ func _uid_to_project_path(params: Dictionary) -> Dictionary:
     return { "result": { "uid": uid_str, "path": path } }
 
 
-func _project_path_to_uid(params: Dictionary) -> Dictionary:
+func project_path_to_uid(params: Dictionary) -> Dictionary:
     var path = params.get("path", "")
     if path == "":
         return { "error": { "code": -32602, "message": "Missing path parameter" } }

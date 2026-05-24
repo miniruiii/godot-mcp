@@ -85,9 +85,9 @@ func _route(method: String, params: Dictionary) -> Dictionary:
         "project.get_info":
             return { "result": Utils.get_engine_info() }
         "project.uid_to_path":
-            return project_editor_inst._uid_to_project_path(params)
+            return project_editor_inst.uid_to_project_path(params)
         "project.path_to_uid":
-            return project_editor_inst._project_path_to_uid(params)
+            return project_editor_inst.project_path_to_uid(params)
         "handshake":
             return { "result": { "version": Utils.PLUGIN_VERSION, "godot_version": Engine.get_version_info()["string"] } }
         # game.* routes for runtime commands (19 tools)
