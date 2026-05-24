@@ -92,3 +92,29 @@ func get_settings() -> Dictionary:
         "rendering": ProjectSettings.get_setting("rendering/renderer/rendering_method", "forward_plus"),
     }
     return { "result": settings }
+
+
+func _uid_to_project_path(params: Dictionary) -> Dictionary:
+    var uid_str = params.get("uid", "")
+    if uid_str == "":
+        return { "error": { "code": -32602, "message": "Missing uid parameter" } }
+    var uid = ResourceUID.text_to_id(uid_str)
+    if uid == ResourceUID.INVALID_ID:
+        return { "error": { "code": -32602, "message": "Invalid UID format: %s" % uid_str } }
+    if not ResourceUID.has_id(uid):
+        return { "error": { "code": -404, "message": "UID '%s' not found" % uid_str } }
+    var path = ResourceUID.get_id_path(uid)
+    return { "result": { "uid": uid_str, "path": path } }
+
+
+func _project_path_to_uid(params: Dictionary) -> Dictionary:
+    var path = params.get("path", "")
+    if path == "":
+        return { "error": { "code": -32602, "message": "Missing path parameter" } }
+    if not ResourceLoader.exists(path):
+        return { "error": { "code": -404, "message": "Resource not found: %s" % path } }
+    var uid = ResourceLoader.get_resource_uid(path)
+    if uid == ResourceUID.INVALID_ID:
+        return { "error": { "code": -32001, "message": "No UID assigned to '%s'" % path } }
+    var uid_str = ResourceUID.id_to_text(uid)
+    return { "result": { "path": path, "uid": uid_str } }
