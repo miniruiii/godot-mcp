@@ -6,7 +6,7 @@
 
 > Connect AI assistants to Godot 4.6.2+ via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-Godot MCP is a fully open-source MCP server and editor plugin that bridges AI clients (Claude, Cursor, VS Code Copilot, etc.) with your Godot projects. It provides **52 tools** across 8 categories, operating in both **offline** (file system) and **online** (live Godot editor) modes.
+Godot MCP is a fully open-source MCP server and editor plugin that bridges AI clients (Claude, Cursor, VS Code Copilot, etc.) with your Godot projects. It provides **56 tools** across 8 categories, operating in both **offline** (file system) and **online** (live Godot editor) modes.
 
 [中文文档](README_zh.md)
 
@@ -18,8 +18,8 @@ Godot MCP is a fully open-source MCP server and editor plugin that bridges AI cl
   - **Offline**: Works with file system only — parse scenes, read scripts, list files.
   - **Online**: Full integration with live Godot editor via WebSocket — edit scenes, run project, inspect runtime state.
 
-- **52 Built-in Tools**
-  - **Project**: File listing, settings, metadata
+- **56 Built-in Tools**
+  - **Project**: File listing, settings, metadata, UID conversion, resource scanning, UID removal
   - **Scene**: Read/parse `.tscn`, create, save, open scenes
   - **Node**: Tree introspection, add/remove/duplicate/move/rename nodes, signal wiring, group management
   - **Script**: Create, read, edit GDScript/C# files
@@ -108,6 +108,12 @@ godot-mcp project list-files --extension .gd
 godot-mcp project settings
 godot-mcp project info
 
+# UID and resource commands (requires Godot editor)
+godot-mcp project uid-to-path --uid uid://abc123
+godot-mcp project path-to-uid --path res://scripts/main.gd
+godot-mcp project rescan
+godot-mcp project remove-uid --uid uid://abc123
+
 # Scene commands (offline)
 godot-mcp scene read --scene-path res://main.tscn
 godot-mcp scene create --scene-path res://new.tscn --root-type Node2D --root-name Root
@@ -162,8 +168,8 @@ Or use environment variables:
 
 | Mode | Tools | Use Case |
 |------|-------|----------|
-| `full` | All 52 tools | AI clients with large context windows |
-| `lite` | 35 tools | Balanced context usage |
+| `full` | All 56 tools | AI clients with large context windows |
+| `lite` | 39 tools | Balanced context usage |
 | `minimal` | 12 tools | Highly constrained contexts |
 
 ---
