@@ -107,7 +107,7 @@ func remove_uid(params: Dictionary) -> Dictionary:
     return { "result": { "uid": uid_str, "path": path, "removed": true } }
 
 
-func rescan_resources(params: Dictionary) -> Dictionary:
+async func rescan_resources(params: Dictionary) -> Dictionary:
     print("[MCP] rescan_resources")
     if Engine.is_editor_hint():
         var efs = EditorInterface.get_resource_filesystem()
@@ -115,7 +115,7 @@ func rescan_resources(params: Dictionary) -> Dictionary:
         await efs.filesystem_changed
         return { "result": { "scanned": true } }
     else:
-        return { "error": { "code": -32002, "message": "只能在编辑器中执行此操作" } }
+        return { "error": { "code": -32002, "message": "This operation is only available in the Godot editor" } }
 
 
 func uid_to_project_path(params: Dictionary) -> Dictionary:
